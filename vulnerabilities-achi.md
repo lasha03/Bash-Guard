@@ -83,3 +83,31 @@ touch /tmp/9
 /challenge/run
 ```
 "filename expansion" is used in tr command, which replaces that glob with matching file name, in our case by 9, and then truncates only character '9'.
+
+# Zen of Expansion
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+pretty_cat () {
+	HEADER="Here is /etc/passwd!"
+	FILE="/etc/passwd"
+	[ -n "$1" ] && HEADER="$1" && shift
+	[ -n "$1" ] && FILE="$1" && shift
+
+	echo "####### $HEADER ########"
+	cat "$FILE"
+}
+
+[ "$#" -eq 1 ] || exit 1
+pretty_cat $*
+```
+
+### exploit
+```sh
+/challenge/run "a /flag"
+```
+unquoted expansion of $* leads to supplying second parameter to pretty_cat function, causing second parameter to move to FILE variable.
