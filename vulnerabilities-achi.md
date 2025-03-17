@@ -111,3 +111,22 @@ pretty_cat $*
 /challenge/run "a /flag"
 ```
 unquoted expansion of $* leads to supplying second parameter to pretty_cat function, causing second parameter to move to FILE variable.
+
+# Way of the Wildcard
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+read FLAG < /flag
+[[ "$FLAG" = $1 ]] && cat /flag
+echo "Goodbye!"
+```
+
+### exploit
+```sh
+/challenge/run "*"
+```
+'*' is a wildcard, expanding to any possible string
