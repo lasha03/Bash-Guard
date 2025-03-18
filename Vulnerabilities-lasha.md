@@ -4,4 +4,4 @@ Always specify absolute paths when executing binaries or other scripts. If your 
 # Unquoted Variable Expansion
 Always use quotes when accessing arguments
 # Shell's Filename Expansion (also known as globbing)
-Warning
+idk warning?
