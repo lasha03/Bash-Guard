@@ -32,3 +32,9 @@
 
 ### Mit: 
 - try sanitizing arguments
+
+## Array Attack, Process Substitution, Abusing -eq
+- `a[\$(cat /flag)]`
+
+## Race Condition(again)
+- Do not use `$0`.
