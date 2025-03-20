@@ -134,4 +134,26 @@ doit() {
 doit
 ```
 ### sol
-Same solution as to [Riddle of the Radix](#riddle-of-the-radix) but pass ${!#} as an input to challenge
+Same solution as to [Riddle of the Radix](#riddle-of-the-radix) but pass ${!#} as an input to challenge. ({!#} is number of arguments
+passed to the program)
+# Dance of the Disallowed
+### chal
+``` sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+WORKDIR=$(mktemp -d)
+[ -n "$WORKDIR" ] || exit 1
+cd $WORKDIR
+
+doit() {
+        echo -n ""
+        read INPUT < <(head -n1 | tr -d "[A-Za-z0-9./~]")
+        eval "$INPUT"
+}
+
+doit
+```
+### sol
+same as in [Path of the Unseen](path-of-the-unseen)
