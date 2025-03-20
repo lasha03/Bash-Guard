@@ -113,7 +113,7 @@ doit() {
 doit
 ```
 ### sol
-Solution to Riddle of the Radix works jus as well
+Solution to [Riddle of the Radix](#riddle-of-the-radix) works jus as well
 # Path of the Unseen
 ### chal
 ``` sh
@@ -134,4 +134,4 @@ doit() {
 doit
 ```
 ### sol
-Same solution as to Riddle of the Radix but pass ${!#} as an input to challenge
+Same solution as to [Riddle of the Radix](#riddle-of-the-radix) but pass ${!#} as an input to challenge
