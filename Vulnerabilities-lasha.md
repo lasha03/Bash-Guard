@@ -157,3 +157,27 @@ doit
 ```
 ### sol
 same as in [Path of the Unseen](#path-of-the-unseen)
+
+# Exclamations of Execution
+### chal
+``` sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+# This neat trick was generously contributed by armax00
+
+PATH=/usr/bin
+
+WORKDIR=$(mktemp -d)
+[ -n "$WORKDIR" ] || exit 1
+cd $WORKDIR
+
+doit() {
+        echo -n ""
+        read INPUT < <(head -c5 | tr -d "[A-Za-z0-9./~\-]")
+        eval "$INPUT"
+}
+
+doit
+```
+### sol
+same as [Path of the Unseen](#path-of-the-unseen)
