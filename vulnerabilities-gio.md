@@ -38,3 +38,6 @@
 
 ## Race Condition(again)
 - Do not use `$0`.
+
+## Subshell Attack with extra bracket
+- `a[\$(</flag))]` (extra ')')
