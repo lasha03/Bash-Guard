@@ -85,7 +85,7 @@ done
 ```
 
 ### Vulnerability
-`ls notflag* | while read FILE`
+`ls notflag* | while read FILE` (pitfall `#1`)
 
 ### Solution
 - Create file with `\n` in it
@@ -93,4 +93,30 @@ done
 ln -s /flag a
 touch $'notflag\na'
 ```
+
+
+## Script of the Silent
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+
+[ -n "$1" ] || exit 1
+[ "$(realpath "$1")" != "/" ] || exit 1
+[ "$(realpath "$1")" != "/flag" ] || exit 2
+
+printf -v BACKUP_DIR "$1"
+tar cvf /tmp/backup "$BACKUP_DIR"
+```
+
+### Vulnerability
+- format string should be provided by user (pitfall `#32`)
+
+### Solution
+```sh
+/challenge/run %s/flag
+```
+
+
+
 
