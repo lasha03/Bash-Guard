@@ -62,6 +62,36 @@ eval "$INPUT"
 $@
 ```
 
+## Your Misplaced Memories
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+# This neat trick was generously contributed by WilyWizard!
+
+PATH=/usr/bin
+
+WORKDIR=$(mktemp -d)
+[ -n "$WORKDIR" ] || exit 1
+cd $WORKDIR
+
+doit() {
+	echo -n ""
+	read INPUT < <(head -n1 | tr -cd "[\-~]")
+	eval "$INPUT"
+}
+
+doit
+```
+
+### Vulnerability
+- Executing user input.
+
+### Solution
+- Create a directory, call `/challenge/run`, while `read` is waiting for an input remove the directory and create a vulnerable script with the same name. Feed `~-` to `read`, `eval OLDPWD` is executed which triggers our vulnerable script. 
+
+
+
+
 ## Precision of Parameters
 ```sh
 #!/usr/bin/env -iS /opt/pwn.college/sh
