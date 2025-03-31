@@ -307,6 +307,20 @@ cat /$(basename "$1")
 /challenge/run "flag o"
 ```
 
+## The Evil End
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/bin
+
+[[ "$1" = *flag ]] && exit 1
+[[ "$1" = */ ]] && exit 2
+cat /$(basename "$1")
+```
+
+### Solution
+- same as The Dangling Danger
+
 
 
 
