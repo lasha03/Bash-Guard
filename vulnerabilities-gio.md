@@ -321,6 +321,24 @@ cat /$(basename "$1")
 ### Solution
 - same as The Dangling Danger
 
+# Module 5
 
+## Puzzle of the Perverse Predicates
+```sh
+#!/usr/bin/env -iS /opt/pwn.college/bash
+
+PATH=/usr/bin
+read FLAG < /flag
+[ "$1" != "$FLAG" ] && echo "Incorrect Guess. Goodbye!" || bash -i
+```
+
+### Vulnerability
+- if echo exits with non-zero status bash will be executed (pitfall `22`)
+
+### Solution
+- close standard output so echo exits with non-zero status.
+```sh
+/challenge/run asdf 1>&-
+```
 
 
