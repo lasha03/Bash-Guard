@@ -3,7 +3,7 @@ Parser for content analysis, based on bashlex parser.
 """
 
 from typing import List
-import bashlex
+import bashlex # type: ignore
 
 class Parser:
     """

@@ -4,7 +4,7 @@ from bashguard.core.parser import Parser
 def test_get_variables():
     
     content = ""
-    test_file_path = os.path.join(os.path.dirname(__file__), 'test.sh')
+    test_file_path = os.path.join(os.path.dirname(__file__), 'test_parser.sh')
     with open(test_file_path, 'r') as f:
         content = f.read()
 
