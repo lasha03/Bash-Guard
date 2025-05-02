@@ -16,7 +16,9 @@ def test_0th_parameter_expansion():
     res = analyzer.analyze()[0]
 
     assert res.vulnerability_type == VulnerabilityType.PARAMETER_EXPANSION
+    assert res.line_number == 5
 
     print(res.description.value)
+    print(res.line_content)
 
 test_0th_parameter_expansion()
