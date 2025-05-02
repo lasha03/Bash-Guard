@@ -18,6 +18,7 @@ class Parser:
         """
         self.content = content
         self.assignment_nodes = []
+        self.parameter_nodes = []
 
     def parse(self):
         """Parse content using bashlex and divide according to keywords"""
@@ -32,6 +33,10 @@ class Parser:
         if hasattr(node, 'parts') == False or len(node.parts) == 0:
             if node.kind == 'assignment':
                 self.assignment_nodes.append(node)
+            
+            if node.kind == 'parameter':
+                self.parameter_nodes.append(node)
+
             return
 
         for child_node in node.parts:
@@ -40,4 +45,7 @@ class Parser:
 
     def get_variables(self) -> List[bashlex.ast.node]:
         return self.assignment_nodes
+    
+    def get_parameters(self) -> List[bashlex.ast.node]:
+        return self.parameter_nodes
         
