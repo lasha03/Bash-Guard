@@ -1,5 +1,5 @@
 import os
-from bashguard.core import Parser
+from bashguard.core import TSParser
 
 def test_get_variables():
     
@@ -8,8 +8,9 @@ def test_get_variables():
     with open(test_file_path, 'r') as f:
         content = f.read()
 
-    p = Parser(content)
-    p.parse()
-    res = p.get_variables()[0]
-    assert res.kind == 'assignment'
-    assert res.word == 'PATH=/usr/bin'
+    parser = TSParser(bytes(content, 'utf-8'))
+    res = parser.get_variables()
+    
+    assert len(res) == 1
+    assert res[0][0] == 'PATH'
+    assert res[0][1] == '/usr/bin'
