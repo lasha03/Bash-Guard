@@ -2,8 +2,8 @@ import os
 
 from pathlib import Path
 
-from bashguard.analyzers.parameter_expansion import ParameterExpansionAnalyzer
-from bashguard.core.vulnerability import VulnerabilityType
+from bashguard.analyzers import ParameterExpansionAnalyzer
+from bashguard.core import VulnerabilityType
 
 def test_0th_parameter_expansion():
     

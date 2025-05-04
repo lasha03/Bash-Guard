@@ -6,10 +6,7 @@ import bashlex # type: ignore
 from pathlib import Path
 from typing import List, Tuple
 
-from bashguard.core.base_analyzer import BaseAnalyzer
-from bashguard.core.vulnerability import Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.parser import Parser
-
+from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, Parser
 
 class ParameterExpansionAnalyzer(BaseAnalyzer):
     """

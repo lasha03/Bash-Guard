@@ -2,12 +2,13 @@
 Core analyzer module that orchestrates the analysis process.
 """
 
-import os
 from pathlib import Path
-from typing import List, Dict, Any, Type
+from typing import List
 
-from bashguard.core.vulnerability import Vulnerability
-from bashguard.core.base_analyzer import BaseAnalyzer
+from bashguard.analyzers import EnvironmentAnalyzer
+from bashguard.analyzers.parameter_expansion import ParameterExpansionAnalyzer
+from bashguard.analyzers.variable_expansion import VariableExpansionAnalyzer
+from bashguard.core import BaseAnalyzer, Vulnerability
 
 class ScriptAnalyzer:
     """
@@ -35,7 +36,11 @@ class ScriptAnalyzer:
     
     def _get_analyzers(self) -> List[BaseAnalyzer]:
         """Get all analyzers to be used for the analysis."""
-        analyzers = []
+        analyzers = [
+            EnvironmentAnalyzer(self.script_path, self.content, self.verbose),
+            ParameterExpansionAnalyzer(self.script_path, self.content, self.verbose),
+            VariableExpansionAnalyzer(self.script_path, self.content, self.verbose)
+        ]
         return analyzers
     
     def analyze(self) -> List[Vulnerability]:

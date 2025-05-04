@@ -3,11 +3,10 @@
 Main entry point for BashGuard
 """
 
-import sys
 import click
 from pathlib import Path
 
-from bashguard.core.analyzer import ScriptAnalyzer
+from bashguard.analyzers import ScriptAnalyzer
 from bashguard import __version__
 
 
@@ -28,11 +27,11 @@ def analyze(script_path, output, format, verbose):
     script_path = Path(script_path)
     
     click.echo(f"Analyzing {script_path}...")
-    analyzer = ScriptAnalyzer(script_path, verbose=verbose)
+
+    analyzer = ScriptAnalyzer(script_path, verbose=1)
     vulnerabilities = analyzer.analyze()
 
     # print vulnerabilities
 
-
 if __name__ == "__main__":
-    cli() 
+    cli()

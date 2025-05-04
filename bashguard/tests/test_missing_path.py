@@ -2,8 +2,8 @@ import os
 
 from pathlib import Path
 
-from bashguard.analyzers.environment import EnvironmentAnalyzer
-from bashguard.core.vulnerability import VulnerabilityType
+from bashguard.analyzers import EnvironmentAnalyzer
+from bashguard.core import VulnerabilityType
 
 def test_missing_path():
     

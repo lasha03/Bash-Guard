@@ -5,9 +5,7 @@ Analyzer for variable expansion vulnerabilities.
 from pathlib import Path
 from typing import List
 
-from bashguard.core.base_analyzer import BaseAnalyzer
-from bashguard.core.vulnerability import Vulnerability, VulnerabilityType, SeverityLevel
-
+from bashguard.core import BaseAnalyzer, Vulnerability
 
 class VariableExpansionAnalyzer(BaseAnalyzer):
     """

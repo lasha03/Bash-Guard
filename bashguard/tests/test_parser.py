@@ -1,5 +1,5 @@
 import os
-from bashguard.core.parser import Parser
+from bashguard.core import Parser
 
 def test_get_variables():
     
