@@ -2,19 +2,17 @@
 Analyzer for path related vulnerabilities.
 """
 
-import bashlex # type: ignore
-
 from pathlib import Path
 from typing import List
 
-from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, Parser
+from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
 
 class EnvironmentAnalyzer(BaseAnalyzer):
     """
     Analyzer that detects if PATH variable is missing in a shell script.
     """
     
-    def __init__(self, script_path: Path, content: str, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
         """
         Initialize the PATH related analyzer.
         
@@ -23,7 +21,7 @@ class EnvironmentAnalyzer(BaseAnalyzer):
             content: Content of the script
             verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, verbose)
+        super().__init__(script_path, content, parser, verbose)
     
     def analyze(self) -> List[Vulnerability]:
         """
@@ -33,9 +31,7 @@ class EnvironmentAnalyzer(BaseAnalyzer):
             List of vulnerabilities found
         """
 
-        parser = Parser(self.content)
-        parser.parse()
-        variables = parser.get_variables()
+        variables = self.parser.get_variables()
         
         vulnerabilities = []
 
@@ -50,16 +46,14 @@ class EnvironmentAnalyzer(BaseAnalyzer):
                 column=None,
                 line_content=None,
             )
-            vulnerabilities.append(vulnerability)    
+            vulnerabilities.append(vulnerability)
 
-        
-        return vulnerabilities 
+        return vulnerabilities
     
     
-    def __path_declared(self, variables: List[bashlex.ast.node]) -> bool:
-        for variable in variables:
-            word = variable.word
-            if word.split('=')[0] == 'PATH':
+    def __path_declared(self, variables: list[tuple[str, str]]) -> bool:
+        for var, _ in variables:
+            if var == "PATH":
                 return True
         
         return False

@@ -5,7 +5,7 @@ Analyzer for variable expansion vulnerabilities.
 from pathlib import Path
 from typing import List
 
-from bashguard.core import BaseAnalyzer, Vulnerability
+from bashguard.core import BaseAnalyzer, Vulnerability, TSParser
 
 class VariableExpansionAnalyzer(BaseAnalyzer):
     """
@@ -18,7 +18,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
     - Missing default values for parameter expansions
     """
     
-    def __init__(self, script_path: Path, content: str, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
         """
         Initialize the variable expansion analyzer.
         
@@ -27,7 +27,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
             content: Content of the script
             verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, verbose)
+        super().__init__(script_path, content, parser, verbose)
     
     def analyze(self) -> List[Vulnerability]:
         """

@@ -4,9 +4,9 @@ Base analyzer class that defines the interface for all analyzers.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List
 
-from bashguard.core.vulnerability import Vulnerability
+from bashguard.core import Vulnerability, TSParser
 
 
 class BaseAnalyzer(ABC):
@@ -17,7 +17,7 @@ class BaseAnalyzer(ABC):
     specific types of vulnerabilities in Bash scripts.
     """
     
-    def __init__(self, script_path: Path, content: str, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
         """
         Initialize the analyzer.
         
@@ -28,6 +28,7 @@ class BaseAnalyzer(ABC):
         """
         self.script_path = script_path
         self.content = content
+        self.parser = parser
         self.verbose = verbose
         self.lines = content.splitlines()
     

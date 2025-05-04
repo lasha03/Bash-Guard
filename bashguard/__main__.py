@@ -31,7 +31,7 @@ def analyze(script_path, output, format, verbose):
     analyzer = ScriptAnalyzer(script_path, verbose=1)
     vulnerabilities = analyzer.analyze()
 
-    # print vulnerabilities
+    # print(vulnerabilities)
 
 if __name__ == "__main__":
     cli()

@@ -2,13 +2,13 @@
 Core package for BashGuard.
 """
 
-from bashguard.core.base_analyzer import BaseAnalyzer
-from bashguard.core.parser import Parser
 from bashguard.core.vulnerability import Vulnerability, Description, SeverityLevel, VulnerabilityType
+from bashguard.core.tsparser import TSParser
+from bashguard.core.base_analyzer import BaseAnalyzer
 
 __all__ = [
+    "TSParser",
     "BaseAnalyzer",
-    "Parser",
     "Vulnerability",
     "Description",
     "SeverityLevel",
