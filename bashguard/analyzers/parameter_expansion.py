@@ -47,8 +47,8 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
                 description=Description.PARAMETER_EXPANSION_0,
 
                 file_path=self.script_path,
-                line_number=line+1, # tree_sitter starts indexing from 0
-                column=column+1, # tree_sitter starts indexing from 0
+                line_number=line, # tree_sitter starts indexing from 0
+                column=column, # tree_sitter starts indexing from 0
                 line_content=None,
             )
             vulnerabilities.append(vulnerability)    
