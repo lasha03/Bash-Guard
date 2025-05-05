@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List
 
 from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
+from bashguard.core.types import AssignedVariable
 
 class EnvironmentAnalyzer(BaseAnalyzer):
     """
@@ -51,9 +52,9 @@ class EnvironmentAnalyzer(BaseAnalyzer):
         return vulnerabilities
     
     
-    def __path_declared(self, variables: list[tuple[str, str]]) -> bool:
+    def __path_declared(self, variables: list[AssignedVariable]) -> bool:
         for var, _ in variables:
-            if var == "PATH":
+            if var.name == "PATH":
                 return True
         
         return False

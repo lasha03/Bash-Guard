@@ -12,5 +12,5 @@ def test_get_variables():
     res = parser.get_variables()
     
     assert len(res) == 1
-    assert res[0][0] == 'PATH'
-    assert res[0][1] == '/usr/bin'
+    assert res[0].name == 'PATH'
+    assert res[0].value == '/usr/bin'

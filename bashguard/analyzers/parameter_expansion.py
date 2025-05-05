@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
+from bashguard.core.types import UsedVariable
 
 class ParameterExpansionAnalyzer(BaseAnalyzer):
     """
@@ -38,7 +39,7 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
 
         vulnerabilities = []
         
-        ok, _ = self.__0th_parameter_expansion(parameters)
+        ok, line, column = self.__0th_parameter_expansion(parameters)
         if ok:
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.PARAMETER_EXPANSION,
@@ -46,18 +47,17 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
                 description=Description.PARAMETER_EXPANSION_0,
 
                 file_path=self.script_path,
-                # pos=pos, TODO
-                line_number=-1,
-                column=None,
+                line_number=line+1, # tree_sitter starts indexing from 0
+                column=column+1, # tree_sitter starts indexing from 0
                 line_content=None,
             )
             vulnerabilities.append(vulnerability)    
         
         return vulnerabilities 
     
-    def __0th_parameter_expansion(self, parameters: List[str]) -> Tuple[bool, Tuple[int, int]]:
+    def __0th_parameter_expansion(self, parameters: List[UsedVariable]) -> Tuple[bool, int, int]:
         for parameter in parameters:
-            if parameter == '$0':
-                return True, (-1, -1)
+            if parameter.name == '$0':
+                return True, parameter.line, parameter.column
         
-        return None, (-1, -1)
+        return False, -1, -1

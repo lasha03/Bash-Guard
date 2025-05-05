@@ -6,6 +6,8 @@ from operator import index
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
+from bashguard.core.types import AssignedVariable, UsedVariable
+
 class TSParser:
     
     def __init__(self, content: bytes):
@@ -18,8 +20,8 @@ class TSParser:
         self.content: bytes = content
 
         # (variable, value)
-        self.variable_assignments: list[tuple[str, str]] = []
-        self.used_variables: list[str] = []
+        self.variable_assignments: list[AssignedVariable] = []
+        self.used_variables: list[UsedVariable] = []
 
         ts_language = Language(tsbash.language())
         self.parser = Parser(ts_language)
@@ -39,10 +41,24 @@ class TSParser:
                 var = var_val[0]
                 val = var_val[1]
 
-                self.variable_assignments.append((var, val))
+                self.variable_assignments.append(
+                    AssignedVariable(
+                        name=var, 
+                        value=val, 
+                        line=node.start_point[0], 
+                        column=node.start_point[1],
+                    )
+                )
+
             elif 'expansion' in node.type:
                 par = node.text.decode()
-                self.used_variables.append(par)
+                self.used_variables.append(
+                    UsedVariable(
+                        name=par, 
+                        line=node.start_point[0], 
+                        column=node.start_point[1],
+                    )
+                )
 
             for child in node.children:
                 toname(child, indent + 1)
