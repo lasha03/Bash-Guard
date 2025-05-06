@@ -81,6 +81,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         if any(var in value for var in user_env_vars):
             return True
 
+        # parser puts "user input" for read command. will change later
         if value == "user input":
             return True
         
