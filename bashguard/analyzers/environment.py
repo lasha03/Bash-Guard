@@ -53,7 +53,7 @@ class EnvironmentAnalyzer(BaseAnalyzer):
     
     
     def __path_declared(self, variables: list[AssignedVariable]) -> bool:
-        for var, _ in variables:
+        for var in variables:
             if var.name == "PATH":
                 return True
         
