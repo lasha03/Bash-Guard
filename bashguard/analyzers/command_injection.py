@@ -81,9 +81,12 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             return True
         
         # there could be many other cases, but we don't care about them for now
-
         # # Check for read command
         # if 'read' in value:
+        #     return True
+        
+        # # Check for process substitution with read
+        # if '< <(' in value and 'read' in value:
         #     return True
         
         # # Check for command substitution that might contain user input
@@ -198,16 +201,130 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         
         return False
 
-    # not used anymore
-    def _contains_unvalidated_input(self, line: str) -> bool:
-        """Check if a line contains potentially unvalidated input."""
-        # Common sources of user input
-        input_sources = [
-            '$0', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', '$@', '$*',  # Command line arguments
-            '$USER', '$HOME', '$PATH', '$SHELL',  # Environment variables
-            'read',  # Direct user input
-            'curl', 'wget',  # Network input
-            'cat', 'head', 'tail'  # File input
+    # currently not used, but might be used in the future with a more sophisticated approach
+    def _is_user_input_argument(self, line: str) -> bool:
+        """
+        Check if a line contains user input that could be used as a command argument.
+        Returns True if the line contains any pattern that indicates user input.
+        """
+        # Direct user input commands
+        user_input_commands = [
+            'read',           # Direct read from stdin
+            'getopts',        # Command line option parsing
+            'select',         # Interactive menu selection
+            'dialog',         # Text user interface
+            'zenity',         # GTK+ dialog boxes
+            'whiptail',       # Text user interface
+            'curl',           # Network input
+            'wget',           # Network input
+            'nc',             # Network input
+            'netcat',         # Network input
+            'ftp',            # Network input
+            'scp',            # Network input
+            'rsync',          # Network input
+            'ssh',            # Network input
+            'telnet',         # Network input
         ]
-        
-        return any(source in line for source in input_sources)
+
+        # File operations that might read user-controlled files
+        file_operations = [
+            'cat',            # File reading
+            'head',           # File reading
+            'tail',           # File reading
+            'less',           # File reading
+            'more',           # File reading
+            'grep',           # File searching
+            'sed',            # File editing
+            'awk',            # File processing
+            'cut',            # File processing
+            'sort',           # File processing
+            'uniq',           # File processing
+            'join',           # File processing
+            'paste',          # File processing
+            'split',          # File processing
+            'tr',             # Character translation
+        ]
+
+        # Process substitution and command substitution
+        substitutions = [
+            '< <(',           # Process substitution
+            '> >(',           # Process substitution
+            '$(',             # Command substitution
+            '`',              # Command substitution (backticks)
+        ]
+
+        # Environment variables that might contain user input
+        env_vars = [
+            '$USER',          # Username
+            '$HOME',          # Home directory
+            '$PATH',          # Executable path
+            '$SHELL',         # Shell
+            '$TERM',          # Terminal type
+            '$DISPLAY',       # X display
+            '$SSH_CLIENT',    # SSH client info
+            '$SSH_CONNECTION', # SSH connection info
+            '$SSH_TTY',       # SSH TTY
+            '$TMPDIR',        # Temporary directory
+            '$TEMP',          # Temporary directory
+            '$TMP',           # Temporary directory
+            '$PWD',           # Current directory
+            '$OLDPWD',        # Previous directory
+            '$CDPATH',        # CD path
+            '$IFS',           # Internal field separator
+            '$PS1',           # Primary prompt
+            '$PS2',           # Secondary prompt
+            '$PS3',           # Select prompt
+            '$PS4',           # Debug prompt
+        ]
+
+        # Command line arguments
+        cmd_args = [f'${i}' for i in range(10)] + ['$@', '$*']
+
+        # Check for any of these patterns in the line
+        patterns = (
+            user_input_commands +
+            file_operations +
+            substitutions +
+            env_vars +
+            cmd_args
+        )
+
+        # Check for the patterns
+        for pattern in patterns:
+            if pattern in line:
+                return True
+
+        # Check for process substitution with any command
+        if '< <(' in line:
+            # Extract the command inside process substitution
+            start = line.find('< <(') + 4
+            end = line.find(')', start)
+            if end != -1:
+                inner_cmd = line[start:end]
+                # Check if inner command contains any user input patterns
+                if any(pattern in inner_cmd for pattern in patterns):
+                    return True
+
+        # Check for command substitution with any command
+        if '$(' in line:
+            # Extract the command inside command substitution
+            start = line.find('$(') + 2
+            end = line.find(')', start)
+            if end != -1:
+                inner_cmd = line[start:end]
+                # Check if inner command contains any user input patterns
+                if any(pattern in inner_cmd for pattern in patterns):
+                    return True
+
+        # Check for backtick command substitution
+        if '`' in line:
+            # Extract the command inside backticks
+            start = line.find('`') + 1
+            end = line.find('`', start)
+            if end != -1:
+                inner_cmd = line[start:end]
+                # Check if inner command contains any user input patterns
+                if any(pattern in inner_cmd for pattern in patterns):
+                    return True
+
+        return False
