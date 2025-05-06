@@ -17,7 +17,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
         super().__init__(script_path, content, parser, verbose)
         self.user_input_vars: Set[str] = set()  # Set of variables that come from user input
-        self.var_assignments: Dict[str, List[AssignedVariable]] = {}  # Map of variable names to their assignments
+    
     
     def analyze(self) -> List[Vulnerability]:
         vulnerabilities = []
@@ -25,32 +25,27 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # Get all variables used in the script
         used_vars = self.parser.get_used_variables()
         assigned_vars = self.parser.get_variables()
-        # Build variable assignment map and find user input variables
-        self._build_var_assignments(assigned_vars)
+        commands = self.parser.get_commands()
+
+        # default user input variables
+        for i in range(10):  # $0 through $9
+            self.user_input_vars.add(f"{i}")
+        # find user input variables
         self._find_user_input_variables(assigned_vars)
         
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
         # print("user input vars", self.user_input_vars)
-        # print("var assignments", self.var_assignments)
-        
+        # print("commands", commands)
         for var in used_vars:
-            # Check for command substitution with unvalidated input
-            vulnerabilities.extend(self._check_command_substitution(var))
             # Check for unquoted variables
             vulnerabilities.extend(self._check_unquoted_variables(var))
-            # Check for eval/source commands
-            vulnerabilities.extend(self._check_eval_source(var))
+        
+        for command in commands:
+            vulnerabilities.extend(self._check_command_injection(command))
+            vulnerabilities.extend(self._check_eval_source(command))
         
         return vulnerabilities
-    
-    # not used currently, (delete?)
-    def _build_var_assignments(self, assigned_vars: List[AssignedVariable]):
-        """Build a map of variable names to their assignments."""
-        for var in assigned_vars:
-            if var.name not in self.var_assignments:
-                self.var_assignments[var.name] = []
-            self.var_assignments[var.name].append(var)
     
     # might not be completely correct, but it's good enough for now
     def _find_user_input_variables(self, assigned_vars: List[AssignedVariable]):
@@ -117,27 +112,25 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         
         # Check if any of these variables are known to come from user input
         return any(var in self.user_input_vars for var in vars_in_value)
-    
-    def _check_command_substitution(self, var: 'UsedVariable') -> List[Vulnerability]:
+
+    def _check_command_injection(self, command: 'Command') -> List[Vulnerability]:
         vulnerabilities = []
-        line = self.lines[var.line]
-        
-        # Check for command substitution with unvalidated input
-        if '$(' in line or '`' in line:
-            if var.name in self.user_input_vars or self._contains_user_input_var(var.name):
-                vulnerability = Vulnerability(
-                    vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
-                    severity=SeverityLevel.HIGH,
-                    description=Description.COMMAND_SUBSTITUTION,
-                    file_path=self.script_path,
-                    line_number=var.line,
-                    column=var.column,
-                    line_content=line,
-                    recommendation=Recommendation.COMMAND_SUBSTITUTION
-                )
-                vulnerabilities.append(vulnerability)
+        command_name = self.strip_quotes_and_dollar(command.name)
+        if command_name in self.user_input_vars or self._contains_user_input_var(command_name):
+            vulnerability = Vulnerability(
+                vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
+                severity=SeverityLevel.HIGH,
+                description=Description.COMMAND_INJECTION,
+                file_path=self.script_path,
+                line_number=command.line,
+                column=command.column,
+                line_content=self.lines[command.line],
+                recommendation=Recommendation.COMMAND_INJECTION
+            )
+            vulnerabilities.append(vulnerability)
         
         return vulnerabilities
+
     
     def _check_unquoted_variables(self, var: 'UsedVariable') -> List[Vulnerability]:
         vulnerabilities = []
@@ -156,24 +149,22 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.append(vulnerability)
         return vulnerabilities
     
-    def _check_eval_source(self, var: 'UsedVariable') -> List[Vulnerability]:
+    def _check_eval_source(self, cmd: 'Command') -> List[Vulnerability]:
         vulnerabilities = []
 
-        line = self.lines[var.line]
-        
-        if line.strip().startswith('eval ') or line.strip().startswith('source '):
-            if var.name in self.user_input_vars or self._contains_user_input_var(var.name):
-                    vulnerability = Vulnerability(
-                        vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
-                        severity=SeverityLevel.CRITICAL,
-                        description=Description.EVAL_SOURCE,
-                        file_path=self.script_path,
-                        line_number=var.line,
-                        column=0,
-                        line_content=line,
-                        recommendation=Recommendation.EVAL_SOURCE
-                    )
-                    vulnerabilities.append(vulnerability)
+        if cmd.name == 'eval' or cmd.name == 'source' and \
+            (cmd.arguments[0] in self.user_input_vars or self._contains_user_input_var(cmd.arguments[0])):
+            vulnerability = Vulnerability(
+                vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
+                severity=SeverityLevel.CRITICAL,
+                description=Description.EVAL_SOURCE,
+                file_path=self.script_path,
+                line_number=cmd.line,
+                column=cmd.column,
+                line_content=self.lines[cmd.line],
+                recommendation=Recommendation.EVAL_SOURCE
+            )
+            vulnerabilities.append(vulnerability)
         
         return vulnerabilities
     
@@ -205,6 +196,19 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             return True
         
         return False
+
+    # remove $ and quotes from the command name
+    @staticmethod
+    def strip_quotes_and_dollar(s: str) -> str:
+        # Remove quotes if string starts and ends with them
+        if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+            s = s[1:-1]
+
+        # Remove $ if it starts with it
+        if s.startswith('$'):
+            s = s[1:]
+        
+        return s
 
     # currently not used, but might be used in the future with a more sophisticated approach
     def _is_user_input_argument(self, line: str) -> bool:
