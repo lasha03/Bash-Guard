@@ -11,6 +11,6 @@ def test_get_variables():
     parser = TSParser(bytes(content, 'utf-8'))
     res = parser.get_variables()
     
-    assert len(res) == 1
+    assert len(res) == 2
     assert res[0].name == 'PATH'
     assert res[0].value == '/usr/bin'
