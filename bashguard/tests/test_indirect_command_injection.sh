@@ -1,3 +1,3 @@
-foo=$1
-bar=$foo
-result=$(echo $bar)
+foo="$1"
+bar="$foo"
+result=$("$bar")

@@ -25,10 +25,14 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # Get all variables used in the script
         used_vars = self.parser.get_used_variables()
         assigned_vars = self.parser.get_variables()
-        
         # Build variable assignment map and find user input variables
         self._build_var_assignments(assigned_vars)
         self._find_user_input_variables(assigned_vars)
+        
+        # print(used_vars)
+        # print(assigned_vars)
+        # print(self.user_input_vars)
+        # print(self.var_assignments)
         
         for var in used_vars:
             # Check for command substitution with unvalidated input
@@ -112,16 +116,16 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         
         # Check for command substitution with unvalidated input
         if '$(' in line or '`' in line:
-            if var.name in self.user_input_vars:
+            if var.name in self.user_input_vars or self._contains_user_input_var(var.name):
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
-                    description="Command substitution with unvalidated input may lead to command injection",
+                    description=Description.COMMAND_SUBSTITUTION,
                     file_path=self.script_path,
                     line_number=var.line,
                     column=var.column,
                     line_content=line,
-                    recommendation="Validate and sanitize all input before using it in command substitution"
+                    recommendation=Recommendation.COMMAND_SUBSTITUTION
                 )
                 vulnerabilities.append(vulnerability)
         
@@ -150,7 +154,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         line = self.lines[var.line]
         
         if line.strip().startswith('eval ') or line.strip().startswith('source '):
-            if var.name in self.user_input_vars:
+            if var.name in self.user_input_vars or self._contains_user_input_var(var.name):
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                         severity=SeverityLevel.CRITICAL,
