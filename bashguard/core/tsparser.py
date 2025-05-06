@@ -6,7 +6,7 @@ from operator import index
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable
+from bashguard.core.types import AssignedVariable, UsedVariable, Command
 
 
 class TSParser:
@@ -23,6 +23,7 @@ class TSParser:
         # (variable, value)
         self.variable_assignments: list[AssignedVariable] = []
         self.used_variables: list[UsedVariable] = []
+        self.commands: list[Command] = []
 
         ts_language = Language(tsbash.language())
         self.parser = Parser(ts_language)
@@ -54,7 +55,7 @@ class TSParser:
             elif node.type == "command":
                 cmd = node.text.decode()
 
-                # Check if the command is read command
+                # Check if the command is read command and if so save argument as user input variable
                 if cmd.startswith("read"):
                     parts = cmd[len("read"):].strip().split()
                     if not parts:  # read without arguments
@@ -86,6 +87,20 @@ class TSParser:
                                         column=node.start_point[1],
                                     )
                                 )
+                                
+                # save command name and arguments
+                parts = cmd.split()
+                if parts:
+                    cmd_name = parts[0]
+                    cmd_args = parts[1:]
+                    self.commands.append(
+                        Command(
+                            name=cmd_name,
+                            arguments=cmd_args,
+                            line=node.start_point[0],
+                            column=node.start_point[1],
+                        )
+                    )        
 
             elif 'expansion' in node.type:
                 par = node.text.decode()
@@ -107,3 +122,6 @@ class TSParser:
 
     def get_used_variables(self):
         return self.used_variables
+
+    def get_commands(self):
+        return self.commands
