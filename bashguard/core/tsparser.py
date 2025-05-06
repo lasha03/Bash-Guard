@@ -8,6 +8,7 @@ from tree_sitter import Language, Parser, Node
 
 from bashguard.core.types import AssignedVariable, UsedVariable
 
+
 class TSParser:
     
     def __init__(self, content: bytes):
@@ -49,6 +50,42 @@ class TSParser:
                         column=node.start_point[1],
                     )
                 )
+
+            elif node.type == "command":
+                cmd = node.text.decode()
+
+                # Check if the command is read command
+                if cmd.startswith("read"):
+                    parts = cmd[len("read"):].strip().split()
+                    if not parts:  # read without arguments
+                        self.variable_assignments.append(
+                            AssignedVariable(
+                                name="REPLY",  # default variable for read without args
+                                value="user input",
+                                line=node.start_point[0],
+                                column=node.start_point[1],
+                            )
+                        )
+                    else:
+                        # Handle read with options (-p, -s, -n, etc)
+                        var_start = 0
+                        for i, part in enumerate(parts):
+                            if not part.startswith('-'):
+                                var_start = i
+                                break
+                        
+                        # Add all variables that read will store into
+                        # cases like read var1 var2 var3
+                        for var in parts[var_start:]:
+                            if var:  # Skip empty strings
+                                self.variable_assignments.append(
+                                    AssignedVariable(
+                                        name=var,
+                                        value="user input",
+                                        line=node.start_point[0],
+                                        column=node.start_point[1],
+                                    )
+                                )
 
             elif 'expansion' in node.type:
                 par = node.text.decode()

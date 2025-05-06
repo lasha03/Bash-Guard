@@ -29,10 +29,10 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         self._build_var_assignments(assigned_vars)
         self._find_user_input_variables(assigned_vars)
         
-        # print(used_vars)
-        # print(assigned_vars)
-        # print(self.user_input_vars)
-        # print(self.var_assignments)
+        # print("used vars", used_vars)
+        # print("assigned vars", assigned_vars)
+        # print("user input vars", self.user_input_vars)
+        # print("var assignments", self.var_assignments)
         
         for var in used_vars:
             # Check for command substitution with unvalidated input
@@ -44,6 +44,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         
         return vulnerabilities
     
+    # not used currently, (delete?)
     def _build_var_assignments(self, assigned_vars: List[AssignedVariable]):
         """Build a map of variable names to their assignments."""
         for var in assigned_vars:
@@ -78,6 +79,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # Check for environment variables that might contain user input
         user_env_vars = ['$USER', '$HOME', '$PATH', '$SHELL', '$TERM', '$DISPLAY']
         if any(var in value for var in user_env_vars):
+            return True
+
+        if value == "user input":
             return True
         
         # there could be many other cases, but we don't care about them for now
