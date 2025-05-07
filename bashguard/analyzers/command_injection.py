@@ -36,10 +36,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
         # print("user input vars", self.user_input_vars)
-        # print("commands", commands)
-        for var in used_vars:
-            # Check for unquoted variables
-            vulnerabilities.extend(self._check_unquoted_variables(var))
+        print("commands", commands)
         
         for command in commands:
             vulnerabilities.extend(self._check_command_injection(command))
@@ -102,7 +99,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         parts = value.split('$')
         for part in parts[1:]:  # Skip first part as it's before any $
             var_name = ''
-            for char in part:
+            for char in parts[1]:
                 if char.isalnum() or char == '_':
                     var_name += char
                 else:
@@ -116,7 +113,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     def _check_command_injection(self, command: 'Command') -> List[Vulnerability]:
         vulnerabilities = []
         command_name = self.strip_quotes_and_dollar(command.name)
-        if command_name in self.user_input_vars or self._contains_user_input_var(command_name):
+        if command_name in self.user_input_vars:
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.HIGH,
@@ -132,28 +129,14 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         return vulnerabilities
 
     
-    def _check_unquoted_variables(self, var: 'UsedVariable') -> List[Vulnerability]:
-        vulnerabilities = []
-        
-        if not self._is_properly_quoted(var):
-            vulnerability = Vulnerability(
-                vulnerability_type=VulnerabilityType.UNQUOTED_VARIABLE,
-                severity=SeverityLevel.HIGH,
-                description=Description.UNQUOTED_VARIABLE,
-                file_path=self.script_path,
-                line_number=var.line,
-                column=var.column,
-                line_content=self.lines[var.line] if var.line < len(self.lines) else None,
-                recommendation=Recommendation.UNQUOTED_VARIABLE
-            )
-            vulnerabilities.append(vulnerability)
-        return vulnerabilities
-    
     def _check_eval_source(self, cmd: 'Command') -> List[Vulnerability]:
         vulnerabilities = []
 
-        if cmd.name == 'eval' or cmd.name == 'source' and \
-            (cmd.arguments[0] in self.user_input_vars or self._contains_user_input_var(cmd.arguments[0])):
+        if len(cmd.arguments) < 1:
+            return vulnerabilities
+        
+        arg = self.strip_quotes_and_dollar(cmd.arguments[0])
+        if cmd.name in ['eval', 'source'] and arg in self.user_input_vars:
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.CRITICAL,
@@ -167,41 +150,12 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.append(vulnerability)
         
         return vulnerabilities
-    
-    # might be used in the future
-    def _is_properly_double_quoted(self, var: 'UsedVariable') -> bool:
-        return self.__is_properly_quoted(var, '"')
-    
-    # might be used in the future
-    def _is_properly_single_quoted(self, var: 'UsedVariable') -> bool:
-        return self.__is_properly_quoted(var, "'")
-    
-    def _is_properly_quoted(self, var: 'UsedVariable') -> bool:
-        return self._is_properly_double_quoted(var) or self._is_properly_single_quoted(var)
-    
-    def __is_properly_quoted(self, var: 'UsedVariable', quote: str) -> bool:
-        """Check if a variable is properly quoted in its usage."""
-        line = self.lines[var.line]
-        var_name = var.name
-        
-        # Find the variable in the line
-        start = var.column
-        end = start + len(var_name)
-        
-        before = line[:start].rstrip()
-        after = line[end:].lstrip()
-        
-        # Check for proper quoting
-        if before.endswith(quote) and after.startswith(quote):
-            return True
-        
-        return False
 
     # remove $ and quotes from the command name
     @staticmethod
     def strip_quotes_and_dollar(s: str) -> str:
         # Remove quotes if string starts and ends with them
-        if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        if s.startswith('"') and s.endswith('"') or s.startswith("'") and s.endswith("'"):
             s = s[1:-1]
 
         # Remove $ if it starts with it
