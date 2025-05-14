@@ -33,42 +33,126 @@ class TSParser:
         self.parser.reset()
         tree = self.parser.parse(content)
         self.tainted_variables = set()
-        # self._find_function_definitions() TODO
-        self._find_tainted_variables(tree.root_node, self.tainted_variables)
-
+        self.function_definitions = {}
+        
+        self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
     
-    def _find_tainted_variables(self, node, tainted_variables):
-        """ Finds all the variables that might be influenced by a user """
+    def _find_tainted_variables(self, node, tainted_variables, parent_function_name, all_variables):
+        """ 
+        Finds all the variables that might be influenced by a user.
+        If a variable "var" is defined inside a function "f" then its name if "f.var". 
+        """
 
-        if node.type == "variable_assignment":
+        if node.type == "function_definition":
+            # Note: in bash if a function is defined twice the first one is discarded
+            # Note: function definitions are global
+            function_name = ""
+            for child in node.children:
+                if child.type == "word":
+                    function_name = child.text.decode()
+                    break
+            
+            assert function_name != ""
+
+            # add function_name and matching node to dict
+            self.function_definitions[function_name] = node
+            return
+        
+        if node.type == "command":
+            # check if a command is calling some function and if so, jump to the matching node
+            for child in node.children:
+                if child.type == "command_name":
+                    command_name = child.children[0].text.decode()
+                    if command_name in self.function_definitions:
+                        # Jump to parts of the function definition node. 
+                        # Directly jumping to function definition node will return, because of check.
+                        for part in self.function_definitions[command_name].children:
+                            self._find_tainted_variables(part, tainted_variables, command_name, all_variables)
+                else:
+                    self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
+            
+            return
+
+        local_variables = set()
+
+        if node.type == "declaration_command" and node.children[0].type == "local":
+            # handle variables declared locally in a function 
+            for child in node.children:
+                if child.type == "variable_assignment":
+                    var_val = child.text.decode().split('=')
+                    # since the variable is declared locally its prefix is parent_function_name
+                    variable_name = parent_function_name + '.' + var_val[0]
+                    variable_value = var_val[1]
+
+                    self._check_tainted(variable_name, variable_value, tainted_variables)
+
+                    local_variables.add(variable_name)
+                    all_variables.add(variable_name)
+
+                elif child.type == "variable_name":
+                    # variable is declared for later use
+                    var_val = node.text.decode()
+                    variable_name = parent_function_name + '.' + var_val[0]
+
+                    local_variables.add(variable_name)
+                    all_variables.add(variable_name)
+
+        elif node.type == "variable_assignment":
             var_val = node.text.decode().split('=')
-            variable_name = var_val[0]
+            variable_name = self._get_real_name_of_variable(var_val[0], all_variables)
             variable_value = var_val[1]
 
             # TODO
-            variable = AssignedVariable(
-                name=variable_name, 
-                value=variable_value, 
-                line=node.start_point[0], 
-                column=node.start_point[1],
-            )
+            # variable = AssignedVariable(
+            #     name=variable_name, 
+            #     value=variable_value, 
+            #     line=node.start_point[0], 
+            #     column=node.start_point[1],
+            # )
 
-            if self._is_direct_user_input(variable_value) or self._contains_user_input_var(variable_value, tainted_variables):
-                # If a variable is assigned to a user input directly or indirectly it is tainted  
-                tainted_variables.add(variable_name)
-            else:
-                # Otherwise it is safe, even though it might have been tainted before
-                tainted_variables.discard(variable_name)
+            self._check_tainted(variable_name, variable_value, tainted_variables)
 
         elif node.type == 'if_statement' or node.type == 'case_statement':
             # Variable is tainted if it becomes tainted in any branch of if or case statement 
             for child in node.children:
-                tainted_variables |= self._find_tainted_variables(child, tainted_variables.copy())
+                tainted_variables |= self._find_tainted_variables(child, tainted_variables.copy(), parent_function_name, all_variables)
         else:
             for child in node.children:
-                self._find_tainted_variables(child, tainted_variables)
+                self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
+
+        for variable in local_variables:
+            all_variables.remove(variable)
 
         return tainted_variables
+
+    def _get_real_name_of_variable(self, variable_name, all_variables):
+        """
+        Determine if a variable is local or global
+        Iterate over all variables and find a variable with the same name which was declared the latest(has the most '.' in its name).
+        """
+        real_name = ""
+        mx = 0
+        for other_variable_name in all_variables:
+            name = other_variable_name.split('.')[-1]
+            cnt = other_variable_name.count('.')
+            if name == variable_name and mx < cnt:
+                mx = cnt
+                real_name = other_variable_name
+        
+        # global variable which is not yet declared
+        if real_name == "":
+            real_name = variable_name
+            all_variables.add(real_name) 
+
+        return real_name
+
+    def _check_tainted(self, variable_name, variable_value, tainted_variables):
+        if self._is_direct_user_input(variable_value) or self._contains_user_input_var(variable_value, tainted_variables):
+            # If a variable is assigned to a user input directly or indirectly it is tainted  
+            tainted_variables.add(variable_name)
+        else:
+            # Otherwise it is safe, even though it might have been tainted before
+            tainted_variables.discard(variable_name)
     
     def get_tainted_variables(self):
         return self.tainted_variables
