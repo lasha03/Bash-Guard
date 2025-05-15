@@ -224,8 +224,8 @@ class TSParser:
                         Command(
                             name=cmd_name,
                             arguments=cmd_args,
-                            line=node.start_point[0],
-                            column=node.start_point[1],
+                            line=node.start_point[0]+1,
+                            column=node.start_point[1]+1,
                         )
                     )        
 
