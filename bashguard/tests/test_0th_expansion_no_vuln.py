@@ -16,6 +16,6 @@ def test_0th_parameter_expansion_no_vuln():
     analyzer = ParameterExpansionAnalyzer(Path(test_file_path), content, parser)
     res = analyzer.analyze()
 
-    assert len(res) == 1
+    assert len(res) == 0
 
 test_0th_parameter_expansion_no_vuln()
