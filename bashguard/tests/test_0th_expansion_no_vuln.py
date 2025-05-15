@@ -8,7 +8,7 @@ from bashguard.core import VulnerabilityType, TSParser
 def test_0th_parameter_expansion_no_vuln():
     
     content = ""
-    test_file_path = os.path.join(os.path.dirname(__file__), 'test_parameter_expansion.sh')
+    test_file_path = os.path.join(os.path.dirname(__file__), 'test_0th_parameter_expansion_no_vuln.sh')
     with open(test_file_path, 'r') as f:
         content = f.read()
     
