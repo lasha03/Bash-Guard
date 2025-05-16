@@ -6,7 +6,7 @@ from operator import index
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, Command
+from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript
 
 
 class TSParser:
@@ -24,6 +24,7 @@ class TSParser:
         self.variable_assignments: list[AssignedVariable] = []
         self.used_variables: list[UsedVariable] = []
         self.commands: list[Command] = []
+        self.subscripts: list[Subscript] = [] # node.type == "subscript" for nodes containing array indexings
 
         ts_language = Language(tsbash.language())
         self.parser = Parser(ts_language)
@@ -227,7 +228,22 @@ class TSParser:
                             line=node.start_point[0]+1,
                             column=node.start_point[1]+1,
                         )
-                    )        
+                    )
+            
+            # array subscripts
+            elif node.type == "subscript":
+                subscript = node.text.decode()
+
+                opening_bracket_index = subscript.find('[')
+                array_name, index_expression = subscript[:opening_bracket_index], subscript[opening_bracket_index+1:-1]
+                self.subscripts.append(
+                    Subscript(
+                        array_name=array_name,
+                        index_expression=index_expression,
+                        line=node.start_point[0]+1,
+                        column=node.start_point[1],
+                    )
+                )
 
             elif 'expansion' in node.type:
                 par = node.text.decode()
@@ -300,3 +316,6 @@ class TSParser:
 
     def get_commands(self):
         return self.commands
+
+    def get_subscripts(self):
+        return self.subscripts

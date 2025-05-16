@@ -1,8 +1,10 @@
+import re
+
 from pathlib import Path
-from typing import List, Set, Dict
+from typing import List, Set
 from bashguard.core.vulnerability import Recommendation
 from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import Command, UsedVariable, AssignedVariable
+from bashguard.core.types import Command
 
 class CommandInjectionAnalyzer(BaseAnalyzer):
     """
@@ -29,12 +31,43 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
         # print("user input vars", self.user_input_vars)
-        print("commands", commands)
+        # print("commands", commands)
 
         vulnerabilities = []
         for command in commands:
             vulnerabilities.extend(self._check_command_injection(command))
             vulnerabilities.extend(self._check_eval_source(command))
+        
+        vulnerabilities.extend(self._check_array_index_attacks())
+        
+        return vulnerabilities
+    
+    def _check_array_index_attacks(self) -> List[Vulnerability]:
+        """
+        Check for array index attacks in the script, specifically, user-controlled variables in array indices.
+        
+        Returns:
+            List[Vulnerability]: List of detected array index attack vulnerabilities
+        """
+        vulnerabilities = []
+        
+        subscripts = self.parser.get_subscripts()
+        
+        for subscript in subscripts:
+            for var in self.user_input_vars:
+                if f'${var}' in subscript.index_expression:
+                    vulnerability = Vulnerability(
+                        vulnerability_type=VulnerabilityType.ARRAY_INDEX_ATTACK,
+                        severity=SeverityLevel.HIGH,
+                        description=Description.ARRAY_INDEX_ATTACK,
+                        file_path=self.script_path,
+                        line_number=subscript.line-1,
+                        column=subscript.column,
+                        line_content=self.lines[subscript.line-1],
+                        recommendation=Recommendation.ARRAY_INDEX_ATTACK
+                    )
+                    vulnerabilities.append(vulnerability)
+                    break
         
         return vulnerabilities
     
@@ -47,9 +80,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 severity=SeverityLevel.HIGH,
                 description=Description.COMMAND_INJECTION,
                 file_path=self.script_path,
-                line_number=command.line,
+                line_number=command.line-1,
                 column=command.column,
-                line_content=self.lines[command.line],
+                line_content=self.lines[command.line-1],
                 recommendation=Recommendation.COMMAND_INJECTION
             )
             vulnerabilities.append(vulnerability)
@@ -70,9 +103,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 severity=SeverityLevel.CRITICAL,
                 description=Description.EVAL_SOURCE,
                 file_path=self.script_path,
-                line_number=cmd.line,
+                line_number=cmd.line-1,
                 column=cmd.column,
-                line_content=self.lines[cmd.line],
+                line_content=self.lines[cmd.line-1],
                 recommendation=Recommendation.EVAL_SOURCE
             )
             vulnerabilities.append(vulnerability)
