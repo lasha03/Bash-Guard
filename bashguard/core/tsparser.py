@@ -80,7 +80,7 @@ class TSParser:
             # handle variables declared locally in a function 
             for child in node.children:
                 if child.type == "variable_assignment":
-                    var_val = child.text.decode().split('=')
+                    var_val = child.text.decode().split('=', maxsplit=1)
                     # since the variable is declared locally its prefix is parent_function_name
                     variable_name = parent_function_name + '.' + var_val[0]
                     variable_value = var_val[1]
@@ -99,7 +99,7 @@ class TSParser:
                     all_variables.add(variable_name)
 
         elif node.type == "variable_assignment":
-            var_val = node.text.decode().split('=')
+            var_val = node.text.decode().split('=', maxsplit=1)
             variable_name = self._get_real_name_of_variable(var_val[0], all_variables)
             variable_value = var_val[1]
 
