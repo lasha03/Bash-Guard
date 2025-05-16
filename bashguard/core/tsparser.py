@@ -2,11 +2,10 @@
 Parser for content analysis, based on bashlex parser.
 """
 
-from operator import index
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript
+from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput
 
 
 class TSParser:
@@ -38,7 +37,7 @@ class TSParser:
         
         self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
     
-    def _find_tainted_variables(self, node, tainted_variables, parent_function_name, all_variables):
+    def _find_tainted_variables(self, node: Node, tainted_variables: set[str], parent_function_name: str, all_variables: set[str]):
         """ 
         Finds all the variables that might be influenced by a user.
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
@@ -60,6 +59,8 @@ class TSParser:
             return
         
         if node.type == "command":
+            # TODO read command handling
+
             # check if a command is calling some function and if so, jump to the matching node
             for child in node.children:
                 if child.type == "command_name":
@@ -83,7 +84,7 @@ class TSParser:
                     var_val = child.text.decode().split('=', maxsplit=1)
                     # since the variable is declared locally its prefix is parent_function_name
                     variable_name = parent_function_name + '.' + var_val[0]
-                    variable_value = var_val[1]
+                    variable_value = self.parse_value_node(child.children[-1])
 
                     self._check_tainted(variable_name, variable_value, tainted_variables)
 
@@ -101,7 +102,7 @@ class TSParser:
         elif node.type == "variable_assignment":
             var_val = node.text.decode().split('=', maxsplit=1)
             variable_name = self._get_real_name_of_variable(var_val[0], all_variables)
-            variable_value = var_val[1]
+            variable_value = self.parse_value_node(node.children[-1])
 
             # TODO
             # variable = AssignedVariable(
@@ -147,16 +148,62 @@ class TSParser:
 
         return real_name
 
-    def _check_tainted(self, variable_name, variable_value, tainted_variables):
-        if self._is_direct_user_input(variable_value) or self._contains_user_input_var(variable_value, tainted_variables):
-            # If a variable is assigned to a user input directly or indirectly it is tainted  
-            tainted_variables.add(variable_name)
-        else:
-            # Otherwise it is safe, even though it might have been tainted before
+    def _check_tainted(self, variable_name: str, variable_value: Value, tainted_variables: set[str]):
+        is_safe = True
+        for sensitive_part in variable_value.sensitive_parts:
+            if self._is_direct_user_input(sensitive_part) or self._contains_user_input_var(sensitive_part, tainted_variables):
+                is_safe = False
+                break
+
+        if is_safe:
             tainted_variables.discard(variable_name)
+        else:
+            tainted_variables.add(variable_name)
     
-    def get_tainted_variables(self):
-        return self.tainted_variables
+    def _is_direct_user_input(self, value: SensitiveValueUnionType) -> bool:
+        """
+        Check if a value comes directly from user input.
+
+        Checks:
+
+            1. If value contains user-inputted variable, like "$1", "$_", "$@" etc.
+            2. If value contains user-controlled environment variable, like "USER", "HOME", "PATH", "SHELL", "TERM", "DISPLAY" etc.
+        """
+
+        ref_variable: str = ""
+        if isinstance(value, ValueUserInput):
+            """Value received from user input, like in read command."""
+            return True
+        elif isinstance(value, ValueParameterExpansion):
+            ref_variable = value.variable
+        elif isinstance(value, ValuePlainVariable):
+            ref_variable = value.variable
+        
+        # Check for command line arguments
+        if (ref_variable in list(map(str, range(10)))) or (ref_variable in ("@", "*")):
+            return True
+        
+        # Check for environment variables that might contain user input
+        user_env_vars = ['USER', 'HOME', 'PATH', 'SHELL', 'TERM', 'DISPLAY']
+        if ref_variable in user_env_vars:
+            return True
+
+        return False
+    
+    def _contains_user_input_var(self, value: SensitiveValueUnionType, tainted_variables: set[str]) -> bool:
+        """
+        Check if a value contains any variable that might be user-controlled.
+        """
+        # Extract all variables from the value
+        vars_in_value = set()
+        if isinstance(value, ValueParameterExpansion):
+            vars_in_value.add(value.variable)
+        elif isinstance(value, ValuePlainVariable):
+            vars_in_value.add(value.variable)
+        elif isinstance(value, ValueUserInput):
+            return True
+
+        return any(var in tainted_variables for var in vars_in_value)
 
     def _parse(self, content):
         self.parser.reset()
@@ -169,7 +216,9 @@ class TSParser:
             if node.type == "variable_assignment":
                 var_val = node.text.decode().split('=')
                 var = var_val[0]
-                val = var_val[1]
+
+                # children = [var, =, val]
+                val = self.parse_value_node(node.children[-1])
 
                 self.variable_assignments.append(
                     AssignedVariable(
@@ -190,7 +239,10 @@ class TSParser:
                         self.variable_assignments.append(
                             AssignedVariable(
                                 name="REPLY",  # default variable for read without args
-                                value="user input",
+                                value=Value(
+                                    content="", # we do not have expression here
+                                    sensitive_parts=[ValueUserInput()]
+                                ),
                                 line=node.start_point[0],
                                 column=node.start_point[1],
                             )
@@ -210,7 +262,10 @@ class TSParser:
                                 self.variable_assignments.append(
                                     AssignedVariable(
                                         name=var,
-                                        value="user input",
+                                        value=Value(
+                                            content="", # we do not have expression here
+                                            sensitive_parts=[ValueUserInput()]
+                                        ),
                                         line=node.start_point[0],
                                         column=node.start_point[1],
                                     )
@@ -260,53 +315,76 @@ class TSParser:
         
         toname(tree.root_node)
     
-    def _is_direct_user_input(self, value: str) -> bool:
-        """Check if a value comes directly from user input."""
-        # Check for command line arguments
-        if any(f'${i}' in value for i in range(10)) or '$@' in value or '$*' in value:
-            return True
-        
-        # Check for environment variables that might contain user input
-        user_env_vars = ['$USER', '$HOME', '$PATH', '$SHELL', '$TERM', '$DISPLAY']
-        if any(var in value for var in user_env_vars):
-            return True
+    def parse_parameter_expansion_node(self, value_node: Node) -> ValueParameterExpansion:
+        """
+        Parse a parameter expansion node.
 
-        # parser puts "user input" for read command. will change later
-        if value == "user input":
-            return True
+        Retrieves:
+            - Value as string
+            - Prefix, like '!' in "${!var}"
+            - Used variable name
+        """
+        def toname(node: Node) -> str | None:
+            if node.type in ("subscript", "variable_name"):
+                return node.text.decode()
+
+            for child in node.children:
+                result = toname(child)
+                if result:
+                    return result
+            
+            return None
+
+        inner_variable = toname(value_node)
+
+        # now deduce prefix
+        node_text = value_node.text.decode()
+        prefix = node_text[node_text.find('{')+1:node_text.find(inner_variable)]
         
-        # there could be many other cases, but we don't care about them for now
-        # # Check for read command
-        # if 'read' in value:
-        #     return True
-        
-        # # Check for process substitution with read
-        # if '< <(' in value and 'read' in value:
-        #     return True
-        
-        # # Check for command substitution that might contain user input
-        # if '$(' in value or '`' in value:
-        #     return True
-        
-        return False
+        return ValueParameterExpansion(
+            content=value_node.text.decode(),
+            prefix=prefix,
+            variable=inner_variable
+        )
     
-    def _contains_user_input_var(self, value: str, tainted_variables) -> bool:
-        """Check if a value contains any variable that comes from user input."""
-        # Extract all variables from the value
-        vars_in_value = set()
-        parts = value.split('$')
-        for part in parts[1:]:  # Skip first part as it's before any $
-            var_name = ''
-            for char in parts[1]:
-                if char.isalnum() or char == '_':
-                    var_name += char
-                else:
-                    break
-            if var_name:
-                vars_in_value.add(var_name)
-        
-        # Check if any of these variables are known to come from user input
-        return any(var in tainted_variables for var in vars_in_value)
+    def parse_value_node(self, value_node: Node) -> SensitiveValueUnionType:
+        """
+        Parse a value node and return a Value object.
+
+        Parses:
+            - Parameter expansion: "${!var}"
+            - Plain variable: "$var"
+            - Simple expansion: "$()"
+        """
+
+        def toname(node: Node, sensitive_parts: list[SensitiveValueUnionType] = [], depth: int = 0) -> list[SensitiveValueUnionType]:
+            if node.type == "expansion": # parameter expansion
+                value_parameter_expansion = self.parse_parameter_expansion_node(node)
+                value_parameter_expansion.column_frame = (node.start_point[1]+1, node.end_point[1])
+                sensitive_parts.append(value_parameter_expansion)
+
+            elif node.type == "simple_expansion": # plain variable
+                value_plain_variable = ValuePlainVariable(
+                    variable=node.text.decode().strip('$'),
+                    column_frame=(node.start_point[1]+1, node.end_point[1])
+                )
+                sensitive_parts.append(value_plain_variable)
+            else:
+                # TODO: maybe handle command substitution, backticks and others here
+                # String literals are just string literals, without any sensitive parts
+                pass
+            
+            for child in node.children:
+                toname(child, sensitive_parts, depth+1)
+
+        sensitive_parts = []
+        toname(value_node, sensitive_parts)
+
+        return Value(
+            content=value_node.text.decode(),
+            sensitive_parts=sensitive_parts
+        )
+    
 
     def get_variables(self):
         return self.variable_assignments
@@ -319,3 +397,6 @@ class TSParser:
 
     def get_subscripts(self):
         return self.subscripts
+    
+    def get_tainted_variables(self):
+        return self.tainted_variables
