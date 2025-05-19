@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 # cannot detect that INPUT is user input
-def test_command_injection():
+def test_command_injection_read():
     test_file_path = os.path.join(os.path.dirname(__file__), 'test_command_injection_read.sh')
     with open(test_file_path, 'r') as f:
         content = f.read()
@@ -19,4 +19,4 @@ def test_command_injection():
     assert len(vulnerabilities) == 1
     assert vulnerabilities[0].vulnerability_type == VulnerabilityType.COMMAND_INJECTION
 
-test_command_injection() 
+test_command_injection_read()
