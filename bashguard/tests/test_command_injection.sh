@@ -2,7 +2,7 @@ foo="$1"
 
 result=$("$foo")
 
-result=`"$foo"
+result=`"$gio"`
 
 eval "$foo"
 
