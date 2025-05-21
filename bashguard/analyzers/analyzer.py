@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List
 
 from bashguard.analyzers import VariableExpansionAnalyzer, ParameterExpansionAnalyzer, CommandInjectionAnalyzer, EnvironmentAnalyzer
+from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer
 from bashguard.core import Vulnerability, BaseAnalyzer, TSParser
 
 class ScriptAnalyzer:
@@ -36,6 +37,7 @@ class ScriptAnalyzer:
     def _init_analyzers(self, parser: TSParser):
         """Get all analyzers to be used for the analysis."""
         self.analyzers: list[BaseAnalyzer] = [
+            ShellcheckAnalyzer(self.script_path, self.contect, self.verbose),
             EnvironmentAnalyzer(self.script_path, self.content, parser, self.verbose),
             ParameterExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
             VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
@@ -60,5 +62,12 @@ class ScriptAnalyzer:
             
             if self.verbose:
                 print(f"Found {len(vulnerabilities)} vulnerabilities.")
+            
+
+            if analyzer.isinstance(ShellcheckAnalyzer) and len(vulnerabilities) > 0:
+                if self.verbose:
+                    print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
+                
+                break
         
         return all_vulnerabilities 
