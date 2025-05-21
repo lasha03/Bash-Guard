@@ -5,7 +5,7 @@ Parser for content analysis, based on bashlex parser.
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput
+from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution
 
 
 class TSParser:
@@ -28,7 +28,7 @@ class TSParser:
         ts_language = Language(tsbash.language())
         self.parser = Parser(ts_language)
 
-        self._parse(self.content)
+        # self._parse(self.content)
         
         self.parser.reset()
         tree = self.parser.parse(content)
@@ -43,6 +43,7 @@ class TSParser:
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
 
+        # print("hereeeeee", node.type, node.text.decode())
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global
@@ -58,9 +59,12 @@ class TSParser:
             self.function_definitions[function_name] = node
             return
         
+        # save command with its argument. If command is read save the corresopondig argument 
+        # as tainted variable
         if node.type == "command":
-            # TODO read command handling
+            self._save_command(node, all_variables, tainted_variables, parent_function_name)
 
+           
             # check if a command is calling some function and if so, jump to the matching node
             for child in node.children:
                 if child.type == "command_name":
@@ -84,7 +88,7 @@ class TSParser:
                     var_val = child.text.decode().split('=', maxsplit=1)
                     # since the variable is declared locally its prefix is parent_function_name
                     variable_name = parent_function_name + '.' + var_val[0]
-                    variable_value = self.parse_value_node(child.children[-1])
+                    variable_value = self.parse_value_node(child.children[-1], all_variables, tainted_variables, parent_function_name)
 
                     self._check_tainted(variable_name, variable_value, tainted_variables)
 
@@ -101,23 +105,43 @@ class TSParser:
 
         elif node.type == "variable_assignment":
             var_val = node.text.decode().split('=', maxsplit=1)
+            # kitxva - es ra sachiroa
             variable_name = self._get_real_name_of_variable(var_val[0], all_variables)
-            variable_value = self.parse_value_node(node.children[-1])
+            
+            # Check if this is an array assignment
+            if '[' in var_val[0]:
+                self._save_subscript(node)
+            
+            variable_value = self.parse_value_node(node.children[-1], all_variables, tainted_variables, parent_function_name)
 
-            # TODO
-            # variable = AssignedVariable(
-            #     name=variable_name, 
-            #     value=variable_value, 
-            #     line=node.start_point[0], 
-            #     column=node.start_point[1],
-            # )
+            self.variable_assignments.append(
+                AssignedVariable(
+                    name=variable_name, 
+                    value=variable_value, 
+                    line=node.start_point[0], 
+                    column=node.start_point[1],
+                )
+            )
 
             self._check_tainted(variable_name, variable_value, tainted_variables)
+
+        # TODO
+        # am testebze mushaobs mara aseti casebi echo $(array4[index]), echo $array5[index]
+        # ar ihendleba
+        elif node.type == "subscript":
+            self._save_subscript(node)
+
+        elif 'expansion' in node.type:
+            # Check if this is an array expansion
+            if '[' in node.text.decode():
+                self._save_subscript(node)
+            self._save_expansion(node)
 
         elif node.type == 'if_statement' or node.type == 'case_statement':
             # Variable is tainted if it becomes tainted in any branch of if or case statement 
             for child in node.children:
                 tainted_variables |= self._find_tainted_variables(child, tainted_variables.copy(), parent_function_name, all_variables)
+        
         else:
             for child in node.children:
                 self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
@@ -126,6 +150,10 @@ class TSParser:
             all_variables.remove(variable)
 
         return tainted_variables
+
+    def _is_variable(self, arg: str) -> bool:
+        arg = arg.strip("\"'")
+        return arg.startswith("$")
 
     def _get_real_name_of_variable(self, variable_name, all_variables):
         """
@@ -205,115 +233,7 @@ class TSParser:
 
         return any(var in tainted_variables for var in vars_in_value)
 
-    def _parse(self, content):
-        self.parser.reset()
-        tree = self.parser.parse(content)
-
-        def toname(node: Node, indent=0):
-            # print(f'NODE: {node.text.decode()}')
-            # print("    " * indent + f"{node.type}: {node.text.decode()}")
-
-            if node.type == "variable_assignment":
-                var_val = node.text.decode().split('=')
-                var = var_val[0]
-
-                # children = [var, =, val]
-                val = self.parse_value_node(node.children[-1])
-
-                self.variable_assignments.append(
-                    AssignedVariable(
-                        name=var, 
-                        value=val, 
-                        line=node.start_point[0], 
-                        column=node.start_point[1],
-                    )
-                )
-
-            elif node.type == "command":
-                cmd = node.text.decode()
-
-                # Check if the command is read command and if so save argument as user input variable
-                if cmd.startswith("read"):
-                    parts = cmd[len("read"):].strip().split()
-                    if not parts:  # read without arguments
-                        self.variable_assignments.append(
-                            AssignedVariable(
-                                name="REPLY",  # default variable for read without args
-                                value=Value(
-                                    content="", # we do not have expression here
-                                    sensitive_parts=[ValueUserInput()]
-                                ),
-                                line=node.start_point[0],
-                                column=node.start_point[1],
-                            )
-                        )
-                    else:
-                        # Handle read with options (-p, -s, -n, etc)
-                        var_start = 0
-                        for i, part in enumerate(parts):
-                            if not part.startswith('-'):
-                                var_start = i
-                                break
-                        
-                        # Add all variables that read will store into
-                        # cases like read var1 var2 var3
-                        for var in parts[var_start:]:
-                            if var:  # Skip empty strings
-                                self.variable_assignments.append(
-                                    AssignedVariable(
-                                        name=var,
-                                        value=Value(
-                                            content="", # we do not have expression here
-                                            sensitive_parts=[ValueUserInput()]
-                                        ),
-                                        line=node.start_point[0],
-                                        column=node.start_point[1],
-                                    )
-                                )
-                                
-                # save command name and arguments
-                parts = cmd.split()
-                if parts:
-                    cmd_name = parts[0]
-                    cmd_args = parts[1:]
-                    self.commands.append(
-                        Command(
-                            name=cmd_name,
-                            arguments=cmd_args,
-                            line=node.start_point[0]+1,
-                            column=node.start_point[1]+1,
-                        )
-                    )
-            
-            # array subscripts
-            elif node.type == "subscript":
-                subscript = node.text.decode()
-
-                opening_bracket_index = subscript.find('[')
-                array_name, index_expression = subscript[:opening_bracket_index], subscript[opening_bracket_index+1:-1]
-                self.subscripts.append(
-                    Subscript(
-                        array_name=array_name,
-                        index_expression=index_expression,
-                        line=node.start_point[0]+1,
-                        column=node.start_point[1],
-                    )
-                )
-
-            elif 'expansion' in node.type:
-                par = node.text.decode()
-                self.used_variables.append(
-                    UsedVariable(
-                        name=par, 
-                        line=node.start_point[0], 
-                        column=node.start_point[1],
-                    )
-                )
-
-            for child in node.children:
-                toname(child, indent + 1)
-        
-        toname(tree.root_node)
+    
     
     def parse_parameter_expansion_node(self, value_node: Node) -> ValueParameterExpansion:
         """
@@ -347,7 +267,7 @@ class TSParser:
             variable=inner_variable
         )
     
-    def parse_value_node(self, value_node: Node) -> SensitiveValueUnionType:
+    def parse_value_node(self, value_node: Node, all_variables, tainted_variables, parent_function_name) -> SensitiveValueUnionType:
         """
         Parse a value node and return a Value object.
 
@@ -369,10 +289,17 @@ class TSParser:
                     column_frame=(node.start_point[1]+1, node.end_point[1])
                 )
                 sensitive_parts.append(value_plain_variable)
-            else:
-                # TODO: maybe handle command substitution, backticks and others here
-                # String literals are just string literals, without any sensitive parts
-                pass
+
+            elif node.type == "command":
+                # handle command substitution, backticks and others here
+                command = self._save_command(node, all_variables, tainted_variables, parent_function_name)
+                if command:
+                    value_command_substitution = ValueCommandSubtitution(command)
+                    sensitive_parts.append(value_command_substitution)
+
+            #TODO more tests needed
+            elif node.type == "subscript":
+                self._save_subscript(node)
             
             for child in node.children:
                 toname(child, sensitive_parts, depth+1)
@@ -385,6 +312,160 @@ class TSParser:
             sensitive_parts=sensitive_parts
         )
     
+
+    def _save_command(self, node, all_variables, tainted_variables, parent_function_name):
+        """
+        Parse and save a command with its arguments using tree-sitter nodes.
+        Handles both direct commands and commands stored in variables.
+        """
+        cmd_name = None
+        cmd_args = []
+
+        def extract_variable_name(node: Node) -> str:
+            """Extract variable name from a node, removing $, quotes, etc."""
+            text = node.text.decode()
+            # Remove $, quotes, and any other decorations
+            text = text.strip("$'\"")
+            return text
+
+        def process_argument_node(arg_node: Node):
+            """Process a single argument node and extract its value."""
+            # All these node types should have their decorations ($, quotes) removed
+            decorated_types = {
+                "word", "expansion", "simple_expansion", "string", 
+                "concatenation", "command_substitution", "arithmetic_expansion",
+                "process_substitution", "heredoc_body", "redirect"
+            }
+            
+            if arg_node.type in decorated_types:
+                return extract_variable_name(arg_node)
+            return arg_node.text.decode()
+
+        # Find command name
+        for child in node.children:
+            if child.type == "command_name":
+                # Command name could be a direct word or a variable
+                if child.children:
+                    # If command name is a variable
+                    cmd_name = extract_variable_name(child.children[0])
+                else:
+                    # Direct command name
+                    cmd_name = extract_variable_name(child)
+            elif child.type in [
+                "word", 
+                "expansion", 
+                "simple_expansion", 
+                "string",
+                "concatenation",
+                "command_substitution",
+                "arithmetic_expansion",
+                "process_substitution",
+                "heredoc_body",
+                "redirect"
+            ]:
+                # Process each argument
+                arg_value = process_argument_node(child)
+                if arg_value:
+                    cmd_args.append(arg_value)
+
+        if cmd_name:
+            # Save the command with its arguments
+            cmd_name = self._get_real_name_of_variable(cmd_name, all_variables)
+            command = Command(
+                    name=cmd_name,
+                    arguments=cmd_args,
+                    line=node.start_point[0],
+                    column=node.start_point[1],
+                )
+            self.commands.append(command)
+
+            # Special handling for read command
+            if cmd_name == "read":
+                for arg in cmd_args:
+                    if not arg.startswith('-'):  # Skip options
+                        variable_name = self._get_real_name_of_variable(arg, all_variables)
+                        self.variable_assignments.append(
+                            AssignedVariable(
+                                name=variable_name,
+                                value=Value(
+                                    content="",
+                                    sensitive_parts=[ValueUserInput()]
+                                ),
+                                line=node.start_point[0],
+                                column=node.start_point[1],
+                            )
+                        )
+                        tainted_variables.add(variable_name)
+            return command
+        return None
+
+    def _save_subscript(self, node: Node) -> None:
+        """
+        Parse and save a subscript node.
+        Handles array access like array[index] and array assignments.
+        """
+        def extract_index_expression(node: Node) -> str:
+            """Extract the index expression from a subscript node."""
+            if not node.children:
+                return node.text.decode()
+            
+            # Handle nested expressions in the index
+            index_parts = []
+            for child in node.children:
+                if child.type == "word":
+                    index_parts.append(child.text.decode())
+                elif child.type in ["expansion", "simple_expansion"]:
+                    index_parts.append(child.text.decode())
+                elif child.type == "command_substitution":
+                    index_parts.append(child.text.decode())
+                else:
+                    index_parts.append(extract_index_expression(child))
+            return "".join(index_parts)
+
+        # Get the full text of the subscript
+        subscript = node.text.decode()
+        
+        # Handle array assignments like array[index]=value
+        if "=" in subscript:
+            array_part = subscript[:subscript.find("=")].strip()
+            opening_bracket_index = array_part.find('[')
+            array_name = array_part[:opening_bracket_index]
+            index_expression = array_part[opening_bracket_index+1:-1]
+        else:
+            # Handle array expansions like ${array[index]}
+            if subscript.startswith("${"):
+                # Remove ${ and } and then find [
+                inner = subscript[2:-1]
+                opening_bracket_index = inner.find('[')
+                array_name = inner[:opening_bracket_index]
+                index_expression = inner[opening_bracket_index+1:-1]
+            else:
+                opening_bracket_index = subscript.find('[')
+                array_name = subscript[:opening_bracket_index]
+                index_expression = subscript[opening_bracket_index+1:-1]
+
+        self.subscripts.append(
+            Subscript(
+                array_name=array_name,
+                index_expression=index_expression,
+                line=node.start_point[0]+1,
+                column=node.start_point[1],
+            )
+        )
+
+    def _save_expansion(self, node: Node) -> None:
+        """
+        Parse and save an expansion node.
+        Handles variable expansions like $var, ${var}, etc.
+        """
+        par = node.text.decode()
+        self.used_variables.append(
+            UsedVariable(
+                name=par, 
+                line=node.start_point[0], 
+                column=node.start_point[1],
+            )
+        )
 
     def get_variables(self):
         return self.variable_assignments

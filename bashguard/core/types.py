@@ -49,7 +49,17 @@ class ValueUserInput:
     """
     pass
 
-SensitiveValueUnionType: TypeAlias = Union[ValueParameterExpansion, ValuePlainVariable, ValueUserInput]
+@dataclass
+class ValueCommandSubtitution:
+    """
+    Represents value as command when having command subtitution
+    
+    For example $foo=$($bar)
+    """
+    command: "Command"
+
+
+SensitiveValueUnionType: TypeAlias = Union[ValueParameterExpansion, ValuePlainVariable, ValueUserInput, ValueCommandSubtitution]
 
 @dataclass
 class Value:

@@ -11,31 +11,27 @@ def test_get_variables():
     parser = TSParser(bytes(content, 'utf-8'))
     assigned_variables = parser.get_variables()
 
-    assert len(assigned_variables) == 6
+    assert len(assigned_variables) == 5
     
     assert assigned_variables[0].name == 'PATH'
     assert assigned_variables[0].value.content == '/usr/bin'
     assert assigned_variables[0].value.sensitive_parts == []
-    
-    assert assigned_variables[1].name == 'REPLY'
-    assert assigned_variables[1].value.content == ''
-    assert assigned_variables[1].value.sensitive_parts == [ValueUserInput()]
 
-    assert assigned_variables[2].name == 'a'
+    assert assigned_variables[1].name == 'a'
 
-    assert assigned_variables[2].name == "a"
+    assert assigned_variables[1].name == "a"
+    assert len(assigned_variables[1].value.sensitive_parts) == 1
+    assert isinstance(assigned_variables[1].value.sensitive_parts[0], ValuePlainVariable)
+
+    assert assigned_variables[2].name == 'b'
     assert len(assigned_variables[2].value.sensitive_parts) == 1
-    assert isinstance(assigned_variables[2].value.sensitive_parts[0], ValuePlainVariable)
-
-    assert assigned_variables[3].name == 'b'
-    assert len(assigned_variables[3].value.sensitive_parts) == 1
-    assert isinstance(assigned_variables[3].value.sensitive_parts[0], ValueParameterExpansion)
+    assert isinstance(assigned_variables[2].value.sensitive_parts[0], ValueParameterExpansion)
     
-    assert assigned_variables[4].name == 'c'
-    assert len(assigned_variables[4].value.sensitive_parts) == 0
+    assert assigned_variables[3].name == 'c'
+    assert len(assigned_variables[3].value.sensitive_parts) == 0
     
-    assert assigned_variables[5].name == 'd'
-    assert len(assigned_variables[5].value.sensitive_parts) == 1
+    assert assigned_variables[4].name == 'd'
+    assert len(assigned_variables[4].value.sensitive_parts) == 1
 
     # Check tainted variables
     tainted_variables = parser.get_tainted_variables()

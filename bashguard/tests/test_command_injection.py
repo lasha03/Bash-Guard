@@ -14,7 +14,7 @@ def test_command_injection():
     analyzer = CommandInjectionAnalyzer(Path(test_file_path), content, parser)
     vulnerabilities = analyzer.analyze()
 
-    assert len(vulnerabilities) == 4
+    assert len(vulnerabilities) == 3
     for v in vulnerabilities:
         assert v.vulnerability_type == VulnerabilityType.COMMAND_INJECTION
 

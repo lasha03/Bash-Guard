@@ -24,14 +24,13 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     def analyze(self) -> List[Vulnerability]:
         # Get all variables used in the script
         commands = self.parser.get_commands()
-        
         # find user-inputted variables
         self.user_input_vars = self.parser.get_tainted_variables()
         
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
-        # print("user input vars", self.user_input_vars)
-        # print("commands", commands)
+        print("user input vars", self.user_input_vars)
+        print("commands", commands)
 
         vulnerabilities = []
         for command in commands:
@@ -39,6 +38,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.extend(self._check_eval_source(command))
         
         vulnerabilities.extend(self._check_array_index_attacks())
+
+        # print(vulnerabilities)
         
         return vulnerabilities
     
@@ -52,6 +53,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
         
         subscripts = self.parser.get_subscripts()
+        print(subscripts)
         
         for subscript in subscripts:
             for var in self.user_input_vars:
@@ -95,9 +97,12 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         if len(cmd.arguments) < 1:
             return vulnerabilities
+
         
+        command_name = cmd.name.rsplit('.', 1)[-1]
         arg = self.strip_quotes_and_dollar(cmd.arguments[0])
-        if cmd.name in ['eval', 'source'] and arg in self.user_input_vars:
+        # print(command_name, arg, arg in self.user_input_vars)
+        if command_name in ['eval', 'source'] and arg in self.user_input_vars:
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.CRITICAL,
@@ -115,13 +120,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     # remove '$' and quotes from the command name
     @staticmethod
     def strip_quotes_and_dollar(s: str) -> str:
-        # Remove quotes if string starts and ends with them
-        if s.startswith('"') and s.endswith('"') or s.startswith("'") and s.endswith("'"):
-            s = s[1:-1]
-
-        # Remove $ if it starts with it
-        if s.startswith('$'):
-            s = s[1:]
+        s.strip('"\'').lstrip('$')
         
         return s
 
