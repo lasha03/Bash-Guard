@@ -37,7 +37,7 @@ class ScriptAnalyzer:
     def _init_analyzers(self, parser: TSParser):
         """Get all analyzers to be used for the analysis."""
         self.analyzers: list[BaseAnalyzer] = [
-            ShellcheckAnalyzer(self.script_path, self.contect, self.verbose),
+            ShellcheckAnalyzer(self.script_path, self.content, self.verbose),
             EnvironmentAnalyzer(self.script_path, self.content, parser, self.verbose),
             ParameterExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
             VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
@@ -64,7 +64,7 @@ class ScriptAnalyzer:
                 print(f"Found {len(vulnerabilities)} vulnerabilities.")
             
 
-            if analyzer.isinstance(ShellcheckAnalyzer) and len(vulnerabilities) > 0:
+            if isinstance(analyzer, ShellcheckAnalyzer) and len(vulnerabilities) > 0:
                 if self.verbose:
                     print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
                 
