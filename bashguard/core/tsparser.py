@@ -42,6 +42,7 @@ class TSParser:
         Finds all the variables that might be influenced by a user.
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
+        # print(node.type)
 
         # print("hereeeeee", node.type, node.text.decode())
         if node.type == "function_definition":
@@ -57,7 +58,7 @@ class TSParser:
 
             # add function_name and matching node to dict
             self.function_definitions[function_name] = node
-            return
+            return tainted_variables
         
         # save command with its argument. If command is read save the corresopondig argument 
         # as tainted variable
@@ -77,7 +78,7 @@ class TSParser:
                 else:
                     self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
             
-            return
+            return tainted_variables
 
         local_variables = set()
 
