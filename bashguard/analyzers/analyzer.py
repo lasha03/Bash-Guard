@@ -38,7 +38,7 @@ class ScriptAnalyzer:
         self.analyzers: list[BaseAnalyzer] = [
             EnvironmentAnalyzer(self.script_path, self.content, parser, self.verbose),
             ParameterExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
-            VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
+            # VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
             CommandInjectionAnalyzer(self.script_path, self.content, parser, self.verbose)
         ]
     

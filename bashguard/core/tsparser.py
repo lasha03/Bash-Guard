@@ -34,7 +34,8 @@ class TSParser:
         tree = self.parser.parse(content)
         self.tainted_variables = set()
         self.function_definitions = {}
-        
+        self.injectable_variables: list[UsedVariable] = []
+
         self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
     
     def _find_tainted_variables(self, node: Node, tainted_variables: set[str], parent_function_name: str, all_variables: set[str]):
@@ -75,9 +76,57 @@ class TSParser:
                         # Directly jumping to function definition node will return, because of check.
                         for part in self.function_definitions[command_name].children:
                             self._find_tainted_variables(part, tainted_variables, command_name, all_variables)
+                    else:
+                        self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
                 else:
                     self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
             
+            return tainted_variables
+
+        if node.type == "test_command":
+            # detect variables, injectable by a superweapon, in test command [ ], [[ ]].
+            def rec(node, ok=False):
+                if ok and node.type == 'variable_name':
+                    self.injectable_variables.append(
+                        UsedVariable(
+                            name=self._get_real_name_of_variable(node.text.decode(), all_variables),
+                            line=node.start_point[0],
+                            column=node.start_point[1],
+                        )
+                    )
+                    # print(node.text.decode())
+
+                for child in node.children:
+                    if child.type == "test_operator" and child.text.decode() in ['-eq', '-ne', '-gt', '-lt', '-ge', '-le']:
+                        ok = True
+                
+                for child in node.children:
+                    rec(child, ok)
+            
+            rec(node)
+            return tainted_variables
+
+        if node.type == "arithmetic_expansion":
+            # detect variables, injectable by a superweapon, in arithmetic expression (( )).  
+            def rec(node, ok=False):
+                if ok and node.type == 'variable_name':
+                    self.injectable_variables.append(
+                        UsedVariable(
+                            name=self._get_real_name_of_variable(node.text.decode(), all_variables),
+                            line=node.start_point[0],
+                            column=node.start_point[1],
+                        )
+                    )
+                    # print(node.text.decode())
+
+                for child in node.children:
+                    if child.type in ["==", "!=", "<", ">", "<=", ">=", "+", "-", "*", "/", "%", "=", "+=", "-=", "*=", "/="]:
+                        ok = True
+                
+                for child in node.children:
+                    rec(child, ok)
+            
+            rec(node)
             return tainted_variables
 
         local_variables = set()
@@ -482,3 +531,6 @@ class TSParser:
     
     def get_tainted_variables(self):
         return self.tainted_variables
+    
+    def get_injectable_variables(self):
+        return self.injectable_variables

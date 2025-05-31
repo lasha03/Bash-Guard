@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Set
 from bashguard.core.vulnerability import Recommendation
 from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import Command
+from bashguard.core.types import Command, UsedVariable
 
 class CommandInjectionAnalyzer(BaseAnalyzer):
     """
@@ -27,6 +27,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # find user-inputted variables
         self.user_input_vars = self.parser.get_tainted_variables()
         
+        for i in range(1, 10):
+            self.user_input_vars.add(str(i))
+        
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
         print("user input vars", self.user_input_vars)
@@ -38,11 +41,40 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.extend(self._check_eval_source(command))
         
         vulnerabilities.extend(self._check_array_index_attacks())
+        
+        vulnerabilities.extend(self._check_superweapon_attack())
 
         # print(vulnerabilities)
         
         return vulnerabilities
     
+    def _check_superweapon_attack(self) -> List[Vulnerability]:
+        """
+        Check which variables might be injectable by [`<flag`] attack.
+
+        Returns:
+            List[Vulnerability]: List of detected array index attack vulnerabilities
+        """
+        vulnerabilities = []
+
+        injectable_variables = self.parser.get_injectable_variables()
+        print(injectable_variables)
+        for used_var in injectable_variables:
+            var_name = used_var.name
+            if var_name in self.user_input_vars:
+                vulnerability = Vulnerability(
+                    vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
+                    severity=SeverityLevel.HIGH,
+                    description=Description.COMMAND_INJECTION,
+                    file_path=self.script_path,
+                    line_number=used_var.line,
+                    column=used_var.column,
+                    recommendation=Recommendation.ARRAY_INDEX_ATTACK
+                )
+                vulnerabilities.append(vulnerability)
+
+        return vulnerabilities
+
     def _check_array_index_attacks(self) -> List[Vulnerability]:
         """
         Check for array index attacks in the script, specifically, user-controlled variables in array indices.
