@@ -15,8 +15,8 @@ def test_way_of_the_wildcard():
     for vuln in vulnerabilities:
         print(vuln)
 
-    assert len(vulnerabilities) == 0
-    # assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION 
+    assert len(vulnerabilities) == 1
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION 
     
 
 test_way_of_the_wildcard()

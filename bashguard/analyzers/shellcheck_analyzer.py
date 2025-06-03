@@ -65,44 +65,40 @@ class ShellcheckAnalyzer(BaseAnalyzer):
             # Extract line number
             line_number = int(part[part.find("line", len(pattern))+5:part.find(":", len(pattern))]) - 1
             
-            # Extract column 
-            column = 0
-            i = part.find("^--")-1
-            while i >= 0 and part[i] == ' ':
-                i -= 1
-                column += 1
-            
-            
-            # Check for vulnerabilities
-            info = part[part.find("^--"):]
+            for info in part.splitlines()[2:]:
+                # Extract column 
+                column = len(info) - len(info.lstrip(' '))
+                
+                # Check for vulnerabilities
+                if "SC1072 (error):  Fix any mentioned problems and try again" in info:
+                    break
 
-            if "^-- SC1072 (error):  Fix any mentioned problems and try again" in info:
-                continue
-
-            if "(error):" in info:
-                # errors.append(part)
-                vulnerability = Vulnerability(
-                    vulnerability_type=VulnerabilityType.SYNTAX_ERROR,
-                    severity=SeverityLevel.LOW,
-                    description=info,
-                    file_path=self.script_path,
-                    line_number=line_number,
-                    column=column,
-                    recommendation=Recommendation.SYNTAX_ERROR
-                )
-                vulnerabilities.append(vulnerability)
-    
-            if "^-- SC2086 (info): Double quote to prevent globbing and word splitting." in info:
-                vulnerability = Vulnerability(
-                    vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
-                    severity=SeverityLevel.HIGH,
-                    description=Description.VARIABLE_EXPANSION,
-                    file_path=self.script_path,
-                    line_number=line_number,
-                    column=column,
-                    recommendation=Recommendation.VARIABLE_EXPANSION
-                )
-                vulnerabilities.append(vulnerability)
+                if "(error):" in info:
+                    vulnerability = Vulnerability(
+                        vulnerability_type=VulnerabilityType.SYNTAX_ERROR,
+                        severity=SeverityLevel.LOW,
+                        description=info,
+                        file_path=self.script_path,
+                        line_number=line_number,
+                        column=column,
+                        recommendation=Recommendation.SYNTAX_ERROR
+                    )
+                    vulnerabilities.append(vulnerability)
+        
+                if "SC2086 (info): Double quote to prevent globbing and word splitting." in info or \
+                    "SC2060 (warning): Quote parameters to tr to prevent glob expansion." in info or \
+                    "SC2053 (warning): Quote the right-hand side of = in [[ ]] to prevent glob matching." in info:
+                    
+                    vulnerability = Vulnerability(
+                        vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
+                        severity=SeverityLevel.HIGH,
+                        description=Description.VARIABLE_EXPANSION,
+                        file_path=self.script_path,
+                        line_number=line_number,
+                        column=column,
+                        recommendation=Recommendation.VARIABLE_EXPANSION
+                    )
+                    vulnerabilities.append(vulnerability)
 
 
 
