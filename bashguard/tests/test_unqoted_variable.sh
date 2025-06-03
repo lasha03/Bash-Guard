@@ -1,4 +1,4 @@
-#!/usr/bin/env -iS /opt/pwn.college/sh
+#!/bin/bash
 
 PATH=/usr/bin
 

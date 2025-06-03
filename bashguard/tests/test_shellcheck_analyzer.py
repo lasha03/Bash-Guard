@@ -1,4 +1,4 @@
-from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer
+from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer, VulnerabilityType
 import os
 
 def test_shellcheck_analyzer():
@@ -6,7 +6,9 @@ def test_shellcheck_analyzer():
     with open(test_file_path, 'r') as f:
         content = f.read()
     a = ShellcheckAnalyzer(test_file_path, content)
-    print(a.analyze())
-    assert len(a.analyze()) > 0
+    # print(a.analyze())
+    res = a.analyze()
+    assert len(res) == 1
+    assert res[0].vulnerability_type == VulnerabilityType.SYNTAX_ERROR
 
 test_shellcheck_analyzer()

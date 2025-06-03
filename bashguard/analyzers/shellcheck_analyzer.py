@@ -3,7 +3,8 @@ from pathlib import Path
 
 
 import subprocess
-from bashguard.core import BaseAnalyzer
+from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description
+from bashguard.core.vulnerability import Recommendation
 
 class ShellcheckAnalyzer(BaseAnalyzer):
     """
@@ -57,10 +58,52 @@ class ShellcheckAnalyzer(BaseAnalyzer):
         # for i, part in enumerate(parts, 1):
         #     print(f"--- Part {i} ---\n{part}\n")
 
-        errors = []
+        vulnerabilities = []
         
         for part in parts:
-            if "(error):" in part:
-                errors.append(part)
+            
+            # Extract line number
+            line_number = int(part[part.find("line", len(pattern))+5:part.find(":", len(pattern))]) - 1
+            
+            # Extract column 
+            column = 0
+            i = part.find("^--")-1
+            while i >= 0 and part[i] == ' ':
+                i -= 1
+                column += 1
+            
+            
+            # Check for vulnerabilities
+            info = part[part.find("^--"):]
 
-        return errors
+            if "^-- SC1072 (error):  Fix any mentioned problems and try again" in info:
+                continue
+
+            if "(error):" in info:
+                # errors.append(part)
+                vulnerability = Vulnerability(
+                    vulnerability_type=VulnerabilityType.SYNTAX_ERROR,
+                    severity=SeverityLevel.LOW,
+                    description=info,
+                    file_path=self.script_path,
+                    line_number=line_number,
+                    column=column,
+                    recommendation=Recommendation.SYNTAX_ERROR
+                )
+                vulnerabilities.append(vulnerability)
+    
+            if "^-- SC2086 (info): Double quote to prevent globbing and word splitting." in info:
+                vulnerability = Vulnerability(
+                    vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
+                    severity=SeverityLevel.HIGH,
+                    description=Description.VARIABLE_EXPANSION,
+                    file_path=self.script_path,
+                    line_number=line_number,
+                    column=column,
+                    recommendation=Recommendation.VARIABLE_EXPANSION
+                )
+                vulnerabilities.append(vulnerability)
+
+
+
+        return vulnerabilities
