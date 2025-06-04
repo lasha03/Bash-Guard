@@ -83,8 +83,8 @@ class TSParser:
             
             return tainted_variables
 
-        if node.type == "test_command":
-            # detect variables, injectable by a superweapon, in test command [ ], [[ ]].
+        if node.type == "test_command" and node.children[0].type == '[[':
+            # detect variables, injectable by a superweapon, in test command [[ ]]. Note does not work on [].
             def rec(node, ok=False):
                 if ok and node.type == 'variable_name':
                     self.injectable_variables.append(

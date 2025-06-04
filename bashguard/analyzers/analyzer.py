@@ -7,7 +7,7 @@ from typing import List
 
 from bashguard.analyzers import VariableExpansionAnalyzer, ParameterExpansionAnalyzer, CommandInjectionAnalyzer, EnvironmentAnalyzer
 from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer
-from bashguard.core import Vulnerability, BaseAnalyzer, TSParser
+from bashguard.core import Vulnerability, BaseAnalyzer, TSParser, VulnerabilityType
 
 class ScriptAnalyzer:
     """
@@ -64,7 +64,7 @@ class ScriptAnalyzer:
                 print(f"Found {len(vulnerabilities)} vulnerabilities.")
             
 
-            if isinstance(analyzer, ShellcheckAnalyzer) and len(vulnerabilities) > 0:
+            if isinstance(analyzer, ShellcheckAnalyzer) and any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
                 if self.verbose:
                     print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
                 

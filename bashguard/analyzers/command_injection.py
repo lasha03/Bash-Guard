@@ -32,8 +32,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         
         # print("used vars", used_vars)
         # print("assigned vars", assigned_vars)
-        print("user input vars", self.user_input_vars)
-        print("commands", commands)
+        # print("user input vars", self.user_input_vars)
+        # print("commands", commands)
 
         vulnerabilities = []
         for command in commands:
@@ -58,7 +58,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
 
         injectable_variables = self.parser.get_injectable_variables()
-        print(injectable_variables)
+        # print(injectable_variables)
         for used_var in injectable_variables:
             var_name = used_var.name
             if var_name in self.user_input_vars:
@@ -85,7 +85,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
         
         subscripts = self.parser.get_subscripts()
-        print(subscripts)
+        # print(subscripts)
         
         for subscript in subscripts:
             for var in self.user_input_vars:
