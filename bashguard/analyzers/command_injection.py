@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Set
 from bashguard.core.vulnerability import Recommendation
 from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import Command, UsedVariable
+from bashguard.core.types import Command, InjectableVariable
 
 class CommandInjectionAnalyzer(BaseAnalyzer):
     """
@@ -19,8 +19,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
         super().__init__(script_path, content, parser, verbose)
         self.user_input_vars: Set[str] = set()  # Set of variables that come from user input
-    
-    
+
+
     def analyze(self) -> List[Vulnerability]:
         # Get all variables used in the script
         commands = self.parser.get_commands()
@@ -41,13 +41,13 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.extend(self._check_eval_source(command))
         
         vulnerabilities.extend(self._check_array_index_attacks())
-        
+
         vulnerabilities.extend(self._check_superweapon_attack())
 
         # print(vulnerabilities)
         
         return vulnerabilities
-    
+
     def _check_superweapon_attack(self) -> List[Vulnerability]:
         """
         Check which variables might be injectable by [`<flag`] attack.
@@ -59,16 +59,16 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         injectable_variables = self.parser.get_injectable_variables()
         # print(injectable_variables)
-        for used_var in injectable_variables:
-            var_name = used_var.name
+        for var in injectable_variables:
+            var_name = var.name
             if var_name in self.user_input_vars:
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
                     description=Description.COMMAND_INJECTION,
                     file_path=self.script_path,
-                    line_number=used_var.line,
-                    column=used_var.column,
+                    line_number=var.line,
+                    column=var.column,
                     recommendation=Recommendation.ARRAY_INDEX_ATTACK
                 )
                 vulnerabilities.append(vulnerability)

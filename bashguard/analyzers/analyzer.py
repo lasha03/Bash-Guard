@@ -53,21 +53,35 @@ class ScriptAnalyzer:
         """
         all_vulnerabilities = []
         
+        expanded_variables = []  # To track variable expansions
+
         for analyzer in self.analyzers:
             if self.verbose:
                 print(f"Running {analyzer.__class__.__name__}...")
-            
-            vulnerabilities = analyzer.analyze()
-            all_vulnerabilities.extend(vulnerabilities)
-            
+                
+            vulnerabilities = []
+            # If the analyzer is CommandInjectionAnalyzer, we need to pass the expanded variables
+            if isinstance(analyzer, CommandInjectionAnalyzer):
+                vulnerabilities = analyzer.analyze()
+            else:
+                vulnerabilities = analyzer.analyze()
+
+
+            if any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
+                if self.verbose:
+                    print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
+                break
+                
+            for vuln in vulnerabilities:
+                if vuln.vulnerability_type == VulnerabilityType.COMMAND_INJECTION:
+                    if (vuln.line_number, vuln.column-1) in expanded_variables:
+                        vulnerabilities.remove(vuln)
+                elif vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION:
+                    expanded_variables.append((vuln.line_number, vuln.column))
+
             if self.verbose:
                 print(f"Found {len(vulnerabilities)} vulnerabilities.")
             
-
-            if isinstance(analyzer, ShellcheckAnalyzer) and any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
-                if self.verbose:
-                    print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
-                
-                break
+            all_vulnerabilities.extend(vulnerabilities)
         
         return all_vulnerabilities 

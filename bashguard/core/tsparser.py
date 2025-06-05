@@ -5,7 +5,7 @@ Parser for content analysis, based on bashlex parser.
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution
+from bashguard.core.types import AssignedVariable, UsedVariable, InjectableVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution
 
 
 class TSParser:
@@ -34,7 +34,7 @@ class TSParser:
         tree = self.parser.parse(content)
         self.tainted_variables = set()
         self.function_definitions = {}
-        self.injectable_variables: list[UsedVariable] = []
+        self.injectable_variables: list[InjectableVariable] = []
 
         self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
     
@@ -83,21 +83,29 @@ class TSParser:
             
             return tainted_variables
 
-        if node.type == "test_command" and node.children[0].type == '[[':
-            # detect variables, injectable by a superweapon, in test command [[ ]]. Note does not work on [].
+        if node.type == "test_command":
+            # detect variables, injectable by a superweapon, in test command [[ ]], [].
+            test_command = node.children[0].type
+
             def rec(node, ok=False):
                 if ok and node.type == 'variable_name':
                     self.injectable_variables.append(
-                        UsedVariable(
+                        InjectableVariable(
                             name=self._get_real_name_of_variable(node.text.decode(), all_variables),
                             line=node.start_point[0],
                             column=node.start_point[1],
+                            test_command=test_command,
                         )
                     )
                     # print(node.text.decode())
 
+                flags = [
+                    '-a', '-b', '-c', '-d', '-e', '-f', '-g', '-G', '-h', '-k', '-L', '-N', '-o', '-O', '-p', '-r', '-s', '-S', '-t', '-u', '-v', '-w', '-x', '-z',
+                    '-ef', '-ot', '-b', '-c', '-eq', '-ne', '-gt', '-lt', '-ge', '-le'
+                ]
+
                 for child in node.children:
-                    if child.type == "test_operator" and child.text.decode() in ['-eq', '-ne', '-gt', '-lt', '-ge', '-le']:
+                    if child.type == "test_operator" and child.text.decode() in flags:
                         ok = True
                 
                 for child in node.children:

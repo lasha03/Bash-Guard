@@ -100,3 +100,10 @@ class Subscript:
     index_expression: str
     line: int
     column: int
+
+@dataclass
+class InjectableVariable:
+    name: str
+    line: int
+    column: int
+    test_command: str
