@@ -5,7 +5,7 @@ Parser for content analysis, based on bashlex parser.
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, InjectableVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution
+from bashguard.core.types import AssignedVariable, UsedVariable, InjectableVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution, DeclaredPair
 
 
 class TSParser:
@@ -35,6 +35,7 @@ class TSParser:
         self.tainted_variables = set()
         self.function_definitions = {}
         self.injectable_variables: list[InjectableVariable] = []
+        self.declared_pairs: list[DeclaredPair] = []  # pairs of variables declared with declare, typeset and so on.
 
         self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
     
@@ -139,8 +140,31 @@ class TSParser:
 
         local_variables = set()
 
+        # detect things like "declare "$1"="$2"" , "typeset "$1"="$2"" and so on.
+        if node.type == "declaration_command":
+            for child in node.children:
+                if child.type == "concatenation":
+                    variables = []
+                    def rec(node):
+                        if node.type == "variable_name":
+                            variables.append(node.text.decode())
+                        for child in node.children:
+                            rec(child)
+                    rec(child)
+
+                    if len(variables) == 2:
+                        self.declared_pairs.append(
+                            DeclaredPair(
+                                var1=variables[0], 
+                                var2=variables[1], 
+                                line=child.start_point[0],
+                                column=child.start_point[1]
+                            )
+                        )
+
+
+        # handle variables declared locally in a function 
         if node.type == "declaration_command" and node.children[0].type == "local":
-            # handle variables declared locally in a function 
             for child in node.children:
                 if child.type == "variable_assignment":
                     var_val = child.text.decode().split('=', maxsplit=1)
@@ -542,3 +566,6 @@ class TSParser:
     
     def get_injectable_variables(self):
         return self.injectable_variables
+
+    def get_declared_pairs(self):
+        return self.declared_pairs

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Set
 from bashguard.core.vulnerability import Recommendation
 from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import Command, InjectableVariable
+from bashguard.core.types import Command, InjectableVariable, DeclaredPair
 
 class CommandInjectionAnalyzer(BaseAnalyzer):
     """
@@ -44,8 +44,35 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         vulnerabilities.extend(self._check_superweapon_attack())
 
+        vulnerabilities.extend(self._check_declared_pairs())
         # print(vulnerabilities)
         
+        return vulnerabilities
+
+    def _check_declared_pairs(self) -> List[Vulnerability]:
+        """
+        Check for declared pairs of variables that might be used in command injection attacks.
+        
+        Returns:
+            List[Vulnerability]: List of detected command injection vulnerabilities
+        """
+        vulnerabilities = []
+
+        for pair in self.parser.get_declared_pairs():
+            var1 = pair.var1
+            var2 = pair.var2
+            if var1 in self.user_input_vars or var2 in self.user_input_vars:
+                vulnerability = Vulnerability(
+                    vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
+                    severity=SeverityLevel.HIGH,
+                    description=Description.COMMAND_INJECTION,
+                    file_path=self.script_path,
+                    line_number=pair.line,
+                    column=pair.column,
+                    recommendation=Recommendation.COMMAND_INJECTION
+                )
+                vulnerabilities.append(vulnerability)
+
         return vulnerabilities
 
     def _check_superweapon_attack(self) -> List[Vulnerability]:

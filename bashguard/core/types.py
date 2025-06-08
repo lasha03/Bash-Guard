@@ -107,3 +107,10 @@ class InjectableVariable:
     line: int
     column: int
     test_command: str
+
+@dataclass
+class DeclaredPair:
+    var1: str
+    var2: str
+    line: int
+    column: int
