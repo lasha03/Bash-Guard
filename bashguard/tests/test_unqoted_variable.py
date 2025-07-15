@@ -14,7 +14,7 @@ def test_unqoted_variable():
     analyzer = VariableExpansionAnalyzer(Path(test_file_path), content, parser)
     vulnerabilities = analyzer.analyze()
 
-    # assert len(vulnerabilities) == 1
-    # assert vulnerabilities[0].vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION
+    assert len(vulnerabilities) == 1
+    assert vulnerabilities[0].vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION
 
 test_unqoted_variable()

@@ -44,7 +44,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         vulnerabilities.extend(self._check_superweapon_attack())
 
-        vulnerabilities.extend(self._check_declared_pairs())
+        # Disabled: Variable assignments are not command injection by themselves
+        # vulnerabilities.extend(self._check_declared_pairs())
         # print(vulnerabilities)
         
         return vulnerabilities
@@ -89,6 +90,20 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         for var in injectable_variables:
             var_name = var.name
             if var_name in self.user_input_vars:
+                # Check if the variable is properly quoted in its context
+                if var.line < len(self.lines):
+                    line_content = self.lines[var.line]
+                    # Skip if the variable appears to be properly quoted
+                    # Look for patterns like "${var}" or "${#var}" which are safe
+                    if f'"${{{var_name}' in line_content or f'"${{#{var_name}' in line_content:
+                        continue
+                    
+                    # Skip numeric comparisons and basic test conditions that should be treated as variable expansion
+                    # These are unquoted variable issues, not command injection
+                    import re
+                    if re.search(r'\$' + var_name + r'\s*-[a-z]+\s*', line_content):  # -eq, -ne, -gt, etc.
+                        continue
+                        
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
@@ -96,6 +111,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                     file_path=self.script_path,
                     line_number=var.line,
                     column=var.column,
+                    line_content=self.lines[var.line] if var.line < len(self.lines) else None,
                     recommendation=Recommendation.ARRAY_INDEX_ATTACK
                 )
                 vulnerabilities.append(vulnerability)
@@ -117,14 +133,23 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         for subscript in subscripts:
             for var in self.user_input_vars:
                 if f'${var}' in subscript.index_expression:
+                    # Check if subscript uses 0-indexed or 1-indexed line numbers
+                    if subscript.line < len(self.lines):
+                        line_content = self.lines[subscript.line]
+                        line_number = subscript.line
+                    else:
+                        # Subscript might be 1-indexed, try subscript.line-1
+                        line_content = self.lines[subscript.line-1] if subscript.line-1 < len(self.lines) else ""
+                        line_number = subscript.line-1
+                    
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.ARRAY_INDEX_ATTACK,
                         severity=SeverityLevel.HIGH,
                         description=Description.ARRAY_INDEX_ATTACK,
                         file_path=self.script_path,
-                        line_number=subscript.line-1,
+                        line_number=line_number,
                         column=subscript.column,
-                        line_content=self.lines[subscript.line-1],
+                        line_content=line_content,
                         recommendation=Recommendation.ARRAY_INDEX_ATTACK
                     )
                     vulnerabilities.append(vulnerability)
@@ -135,15 +160,46 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     def _check_command_injection(self, command: Command) -> List[Vulnerability]:
         vulnerabilities = []
         command_name = self.strip_quotes_and_dollar(command.name)
-        if command_name in self.user_input_vars:
+        
+        # Check for direct variable execution (any variable used as a command)
+        # This includes both user-controlled variables and variables that might be indirectly manipulated
+        original_name = command.name
+        is_variable_command = (original_name.startswith('$') or 
+                             command_name in self.user_input_vars or
+                             # Check if this is a variable name (not a standard command)
+                             (command_name.isalpha() and command_name.isupper()))
+        
+        if is_variable_command:
+            # Get the line content to verify this is a real command injection
+            line_content = self.lines[command.line] if command.line < len(self.lines) else ""
+            
+            # Skip shebang lines and other non-command contexts
+            if line_content.startswith('#!') or not line_content.strip():
+                return vulnerabilities
+            
+            # Skip variable assignments (e.g., foo="$1")
+            if f'{command_name}=' in line_content:
+                return vulnerabilities
+            
+            # Skip if this is just a standalone variable name (likely from recursive parsing artifacts)
+            if (command_name == line_content.strip() and 
+                len(command.arguments) == 0 and 
+                command.line < len(self.lines)):
+                return vulnerabilities
+                
+            # Skip common system commands that are not variables
+            system_commands = {'cd', 'echo', 'exit', 'cp', 'mv', 'rm', 'ls', 'cat', 'grep', 'find', 'mktemp'}
+            if command_name.lower() in system_commands:
+                return vulnerabilities
+                
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.HIGH,
                 description=Description.COMMAND_INJECTION,
                 file_path=self.script_path,
-                line_number=command.line-1,
+                line_number=command.line,
                 column=command.column,
-                line_content=self.lines[command.line-1],
+                line_content=line_content,
                 recommendation=Recommendation.COMMAND_INJECTION
             )
             vulnerabilities.append(vulnerability)
@@ -159,7 +215,29 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         
         command_name = cmd.name.rsplit('.', 1)[-1]
-        arg = self.strip_quotes_and_dollar(cmd.arguments[0])
+        
+        # For sh -c and bash -c, check the second argument (the command to execute)
+        if command_name in ['sh', 'bash'] and len(cmd.arguments) >= 2 and cmd.arguments[0] == '-c':
+            arg = self.strip_quotes_and_dollar(cmd.arguments[1])
+            # For bash/sh -c, only detect as command injection if the ENTIRE argument content is just a user input variable
+            # This avoids conflicts with variable expansion detection for cases like 'echo $FOO'
+            original_arg = cmd.arguments[1].strip('\'"')
+            if arg in self.user_input_vars and original_arg in [f'${arg}', f'${{{arg}}}']:
+                vulnerability = Vulnerability(
+                    vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
+                    severity=SeverityLevel.CRITICAL,
+                    description=Description.EVAL_SOURCE,
+                    file_path=self.script_path,
+                    line_number=cmd.line,
+                    column=cmd.column,
+                    line_content=self.lines[cmd.line],
+                    recommendation=Recommendation.EVAL_SOURCE
+                )
+                vulnerabilities.append(vulnerability)
+            return vulnerabilities
+        else:
+            arg = self.strip_quotes_and_dollar(cmd.arguments[0])
+            
         # print(command_name, arg, arg in self.user_input_vars)
         if command_name in ['eval', 'source'] and arg in self.user_input_vars:
             vulnerability = Vulnerability(
@@ -167,9 +245,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 severity=SeverityLevel.CRITICAL,
                 description=Description.EVAL_SOURCE,
                 file_path=self.script_path,
-                line_number=cmd.line-1,
+                line_number=cmd.line,
                 column=cmd.column,
-                line_content=self.lines[cmd.line-1],
+                line_content=self.lines[cmd.line],
                 recommendation=Recommendation.EVAL_SOURCE
             )
             vulnerabilities.append(vulnerability)
@@ -179,9 +257,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     # remove '$' and quotes from the command name
     @staticmethod
     def strip_quotes_and_dollar(s: str) -> str:
-        s.strip('"\'').lstrip('$')
-        
-        return s
+        return s.strip('"\'').lstrip('$')
 
     # currently not used, but might be used in the future with a more sophisticated approach
     def _is_user_input_argument(self, line: str) -> bool:

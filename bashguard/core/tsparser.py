@@ -100,6 +100,12 @@ class TSParser:
                     )
                     # print(node.text.decode())
 
+                # Handle expansion nodes within the test command
+                elif 'expansion' in node.type:
+                    if '[' in node.text.decode():
+                        self._save_subscript(node)
+                    self._save_expansion(node)
+
                 flags = [
                     '-a', '-b', '-c', '-d', '-e', '-f', '-g', '-G', '-h', '-k', '-L', '-N', '-o', '-O', '-p', '-r', '-s', '-S', '-t', '-u', '-v', '-w', '-x', '-z',
                     '-ef', '-ot', '-b', '-c', '-eq', '-ne', '-gt', '-lt', '-ge', '-le'
@@ -210,6 +216,7 @@ class TSParser:
         # TODO
         # am testebze mushaobs mara aseti casebi echo $(array4[index]), echo $array5[index]
         # ar ihendleba
+        #(aset casebs shellchecki ichers turme)
         elif node.type == "subscript":
             self._save_subscript(node)
 
@@ -218,6 +225,17 @@ class TSParser:
             if '[' in node.text.decode():
                 self._save_subscript(node)
             self._save_expansion(node)
+            
+            # Check if this variable expansion is being used as a command (standalone at statement level)
+            if self._is_variable_command_execution(node):
+                var_name = node.text.decode().lstrip('$')
+                command = Command(
+                    name=var_name,
+                    arguments=[],
+                    line=node.start_point[0],
+                    column=node.start_point[1],
+                )
+                self.commands.append(command)
 
         elif node.type == 'if_statement' or node.type == 'case_statement':
             # Variable is tainted if it becomes tainted in any branch of if or case statement 
@@ -412,15 +430,8 @@ class TSParser:
 
         def process_argument_node(arg_node: Node):
             """Process a single argument node and extract its value."""
-            # All these node types should have their decorations ($, quotes) removed
-            decorated_types = {
-                "word", "expansion", "simple_expansion", "string", 
-                "concatenation", "command_substitution", "arithmetic_expansion",
-                "process_substitution", "heredoc_body", "redirect"
-            }
-            
-            if arg_node.type in decorated_types:
-                return extract_variable_name(arg_node)
+            # For command arguments, we want to preserve the original text
+            # so that recursive parsing can work with quoted strings
             return arg_node.text.decode()
 
         # Find command name
@@ -438,6 +449,7 @@ class TSParser:
                 "expansion", 
                 "simple_expansion", 
                 "string",
+                "raw_string",
                 "concatenation",
                 "command_substitution",
                 "arithmetic_expansion",
@@ -478,8 +490,123 @@ class TSParser:
                             )
                         )
                         tainted_variables.add(variable_name)
+                        
+            # Recursive parsing for commands that execute other commands
+            self._parse_recursive_commands(command, all_variables, tainted_variables, parent_function_name)
+            
             return command
         return None
+
+    def _parse_recursive_commands(self, command: 'Command', all_variables: set[str], tainted_variables: set[str], parent_function_name: str):
+        """
+        Parse commands that execute other commands (bash -c, eval, etc.)
+        and recursively find variables within their string arguments.
+        """
+        cmd_name = command.name
+        
+        # Commands that execute other bash code
+        recursive_commands = {'bash', 'sh', 'eval', 'source', '.'}
+        
+        if cmd_name not in recursive_commands:
+            return
+            
+        # For bash -c and sh -c, parse the command string argument
+        if cmd_name in ['bash', 'sh'] and len(command.arguments) >= 2 and command.arguments[0] == '-c':
+            command_string = command.arguments[1]
+            self._parse_command_string(command_string, command.line, all_variables, tainted_variables, parent_function_name)
+            
+        # For eval, source, and . commands, parse all arguments as potential command strings
+        elif cmd_name in ['eval', 'source', '.']:
+            for arg in command.arguments:
+                self._parse_command_string(arg, command.line, all_variables, tainted_variables, parent_function_name)
+
+    def _parse_command_string(self, command_string: str, base_line: int, all_variables: set[str], tainted_variables: set[str], parent_function_name: str):
+        """
+        Parse a command string to find variables and commands within it.
+        """
+        if not command_string:
+            return
+            
+        try:
+            # Parse the command string as bash code
+            ts_language = Language(tsbash.language())
+            parser = Parser(ts_language)
+            
+            # Remove outer quotes if present (only single or double, not both)
+            clean_string = command_string
+            if (clean_string.startswith("'") and clean_string.endswith("'")) or \
+               (clean_string.startswith('"') and clean_string.endswith('"')):
+                clean_string = clean_string[1:-1]
+            tree = parser.parse(clean_string.encode())
+            
+            if tree.root_node:
+                self._find_commands_in_node(tree.root_node, all_variables, tainted_variables, parent_function_name, base_line)
+                
+        except Exception as e:
+            # If parsing fails, try to at least find simple variable expansions
+            self._find_simple_variables_in_string(command_string, base_line)
+
+    def _find_commands_in_node(self, node, all_variables: set[str], tainted_variables: set[str], parent_function_name: str, base_line: int):
+        """
+        Recursively traverse AST nodes to find commands and variables.
+        """
+        if node.type == "command":
+            self._save_command(node, all_variables, tainted_variables, parent_function_name)
+        elif 'expansion' in node.type:
+            # Check if this variable is properly quoted in its immediate context
+            if self._is_variable_quoted_in_context(node):
+                # Skip properly quoted variables in recursive context
+                pass  
+            else:
+                # Always add the variable for variable expansion analysis
+                # The command injection analyzer will handle direct shell execution contexts
+                adjusted_node_line = base_line + node.start_point[0]
+                var_expansion = UsedVariable(
+                    name=node.text.decode(),
+                    line=adjusted_node_line,
+                    column=node.start_point[1],
+                )
+                self.used_variables.append(var_expansion)
+            
+        for child in node.children:
+            self._find_commands_in_node(child, all_variables, tainted_variables, parent_function_name, base_line)
+
+    def _is_variable_quoted_in_context(self, var_node) -> bool:
+        """
+        Check if a variable node is properly quoted in its immediate AST context.
+        """
+        parent = var_node.parent
+        if not parent:
+            return False
+            
+        # Check if the variable is within a quoted string context
+        while parent:
+            if parent.type in ['string', 'raw_string']:
+                # Check if this is a double-quoted string (which allows variable expansion but provides some protection)
+                parent_text = parent.text.decode()
+                if parent_text.startswith('"') and parent_text.endswith('"'):
+                    return True
+            parent = parent.parent
+            
+        return False
+
+    def _find_simple_variables_in_string(self, command_string: str, base_line: int):
+        """
+        Simple regex-based variable detection as fallback.
+        """
+        import re
+        # Find $VAR and ${VAR} patterns
+        var_pattern = r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?'
+        matches = re.finditer(var_pattern, command_string)
+        
+        for match in matches:
+            var_name = '$' + match.group(1)
+            var_expansion = UsedVariable(
+                name=var_name,
+                line=base_line,
+                column=match.start(),
+            )
+            self.used_variables.append(var_expansion)
 
     def _save_subscript(self, node: Node) -> None:
         """
@@ -548,6 +675,31 @@ class TSParser:
                 column=node.start_point[1],
             )
         )
+
+    def _is_variable_command_execution(self, node: Node) -> bool:
+        """
+        Check if a variable expansion node is being used as a command execution.
+        This occurs when the variable is at the statement level (not within another command).
+        """
+        # Check if the parent is a statement-level context
+        parent = node.parent
+        if not parent:
+            return False
+            
+        # Check if this expansion is a direct child of a command or pipeline
+        # If the parent is a command, then this variable is being executed as a command
+        if parent.type in ['command', 'pipeline']:
+            # Check if this is the first child (command name position)
+            if parent.children and parent.children[0] == node:
+                return True
+        
+        # Check if this is a standalone statement
+        # Look for patterns where the variable is the main element of a statement
+        if parent.type in ['program', 'compound_statement', 'subshell', 'function_definition']:
+            # This variable expansion is at statement level
+            return True
+            
+        return False
 
     def get_variables(self):
         return self.variable_assignments

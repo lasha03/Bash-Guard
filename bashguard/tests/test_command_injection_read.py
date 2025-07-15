@@ -1,5 +1,4 @@
 import os
-from bashguard.analyzers import ScriptAnalyzer
 from bashguard.core import VulnerabilityType
 from bashguard.analyzers.command_injection import CommandInjectionAnalyzer
 from bashguard.core import TSParser
