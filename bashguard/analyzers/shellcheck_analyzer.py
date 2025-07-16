@@ -100,6 +100,18 @@ class ShellcheckAnalyzer(BaseAnalyzer):
                     )
                     vulnerabilities.append(vulnerability)
 
+                if "SC2046" in info:
+                    vulnerability = Vulnerability(
+                        vulnerability_type=VulnerabilityType.UNQUOTED_COMMAND_SUBSTITUTION,
+                        severity=SeverityLevel.HIGH,
+                        description=Description.UNQUOTED_COMMAND_SUBSTITUTION,
+                        file_path=self.script_path,
+                        line_number=line_number,
+                        column=column,
+                        recommendation=Recommendation.UNQUOTED_COMMAND_SUBSTITUTION
+                    )
+                    vulnerabilities.append(vulnerability)
+
 
 
         return vulnerabilities

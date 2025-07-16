@@ -40,7 +40,7 @@ class ScriptAnalyzer:
             ShellcheckAnalyzer(self.script_path, self.content, self.verbose),
             EnvironmentAnalyzer(self.script_path, self.content, parser, self.verbose),
             ParameterExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
-            # VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
+            VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
             CommandInjectionAnalyzer(self.script_path, self.content, parser, self.verbose)
         ]
     
@@ -52,36 +52,84 @@ class ScriptAnalyzer:
             List of vulnerabilities found
         """
         all_vulnerabilities = []
-        
-        expanded_variables = []  # To track variable expansions
 
         for analyzer in self.analyzers:
             if self.verbose:
                 print(f"Running {analyzer.__class__.__name__}...")
                 
-            vulnerabilities = []
-            # If the analyzer is CommandInjectionAnalyzer, we need to pass the expanded variables
-            if isinstance(analyzer, CommandInjectionAnalyzer):
-                vulnerabilities = analyzer.analyze()
-            else:
-                vulnerabilities = analyzer.analyze()
-
+            vulnerabilities = analyzer.analyze()
 
             if any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
                 if self.verbose:
                     print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
                 break
-                
-            for vuln in vulnerabilities:
-                if vuln.vulnerability_type == VulnerabilityType.COMMAND_INJECTION:
-                    if (vuln.line_number, vuln.column-1) in expanded_variables:
-                        vulnerabilities.remove(vuln)
-                elif vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION:
-                    expanded_variables.append((vuln.line_number, vuln.column))
 
             if self.verbose:
                 print(f"Found {len(vulnerabilities)} vulnerabilities.")
             
             all_vulnerabilities.extend(vulnerabilities)
         
-        return all_vulnerabilities 
+        # Remove duplicate vulnerabilities and apply priority rules
+        all_vulnerabilities = self._deduplicate_vulnerabilities(all_vulnerabilities)
+        
+        return all_vulnerabilities
+    
+    def _deduplicate_vulnerabilities(self, vulnerabilities: List[Vulnerability]) -> List[Vulnerability]:
+        """
+        Remove duplicate vulnerabilities and apply priority rules.
+        
+        Priority rules:
+        1. Command injection takes priority over variable expansion for the SAME variable
+        2. Remove exact duplicates based on type, line, and content
+        """
+        # Group vulnerabilities by line number
+        line_groups = {}
+        for vuln in vulnerabilities:
+            line_num = vuln.line_number
+            if line_num not in line_groups:
+                line_groups[line_num] = []
+            line_groups[line_num].append(vuln)
+        
+        deduplicated = []
+        
+        for line_num, line_vulns in line_groups.items():
+            # Extract variable names from command injection vulnerabilities on this line
+            cmd_injection_vars = set()
+            for vuln in line_vulns:
+                if vuln.vulnerability_type == VulnerabilityType.COMMAND_INJECTION:
+                    # Try to extract variable name from the line content
+                    line_content = vuln.line_content or ""
+                    # Look for patterns like eval "$var", sh -c "$var", etc.
+                    import re
+                    var_matches = re.findall(r'\$(\w+)', line_content)
+                    cmd_injection_vars.update(var_matches)
+            
+            # Filter out variable expansion vulnerabilities only if they involve the same variables as command injection
+            filtered_vulns = []
+            for vuln in line_vulns:
+                if vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION and cmd_injection_vars:
+                    # Extract variable name from variable expansion
+                    line_content = vuln.line_content or ""
+                    var_matches = re.findall(r'\$(\w+)', line_content)
+                    # Only remove if this variable expansion involves a variable that also has command injection
+                    if any(var in cmd_injection_vars for var in var_matches):
+                        continue  # Skip this variable expansion as it's covered by command injection
+                
+                filtered_vulns.append(vuln)
+            
+            # Remove exact duplicates within this line
+            seen = set()
+            for vuln in filtered_vulns:
+                # For variable expansion vulnerabilities, use a more flexible key that ignores small column differences
+                if vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION:
+                    line_content = vuln.line_content.strip() if vuln.line_content else ""
+                    key = (vuln.vulnerability_type, vuln.line_number, line_content)
+                else:
+                    # For other vulnerability types, use the original detailed key
+                    key = (vuln.vulnerability_type, vuln.line_number, vuln.column, vuln.line_content)
+                
+                if key not in seen:
+                    seen.add(key)
+                    deduplicated.append(vuln)
+        
+        return deduplicated 
