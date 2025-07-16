@@ -166,8 +166,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         original_name = command.name
         is_variable_command = (original_name.startswith('$') or 
                              command_name in self.user_input_vars or
-                             # Check if this is a variable name (not a standard command)
-                             (command_name.isalpha() and command_name.isupper()))
+                             # Check if this is a variable name (not a standard command) AND it's tainted
+                             (command_name.isalpha() and command_name.isupper() and command_name in self.user_input_vars))
         
         if is_variable_command:
             # Get the line content to verify this is a real command injection
