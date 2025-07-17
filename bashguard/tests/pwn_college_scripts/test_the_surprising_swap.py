@@ -16,8 +16,8 @@ def test_the_surprising_swap():
         print(vuln)
 
     assert len(vulnerabilities) == 2
-    assert vulnerabilities[0].description == Description.MISSING_PATH 
-    assert vulnerabilities[1].description == Description.PARAMETER_EXPANSION_0
+    assert vulnerabilities[0].description == Description.MISSING_PATH.value 
+    assert vulnerabilities[1].description == Description.PARAMETER_EXPANSION_0.value
     
 
 test_the_surprising_swap()

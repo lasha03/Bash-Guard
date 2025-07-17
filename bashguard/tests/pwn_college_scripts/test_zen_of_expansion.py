@@ -16,7 +16,7 @@ def test_zen_of_expansion():
         print(vuln)
 
     assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION 
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value 
     
 
 test_zen_of_expansion()

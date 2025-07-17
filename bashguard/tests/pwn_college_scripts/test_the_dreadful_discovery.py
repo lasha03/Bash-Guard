@@ -16,8 +16,8 @@ def test_the_dreadful_discovery():
         print(vuln)
 
     assert len(vulnerabilities) == 3
-    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION 
-    assert vulnerabilities[1].description == Description.COMMAND_INJECTION 
-    assert vulnerabilities[2].description == Description.COMMAND_INJECTION
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value 
+    assert vulnerabilities[1].description == Description.COMMAND_INJECTION.value 
+    assert vulnerabilities[2].description == Description.COMMAND_INJECTION.value
 
 test_the_dreadful_discovery()

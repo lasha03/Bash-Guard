@@ -16,6 +16,6 @@ def test_masquerade_of_the_self():
         print(vuln)
 
     assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].description == Description.PARAMETER_EXPANSION_0
+    assert vulnerabilities[0].description == Description.PARAMETER_EXPANSION_0.value
 
 test_masquerade_of_the_self()

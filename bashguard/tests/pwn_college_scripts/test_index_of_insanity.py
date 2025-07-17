@@ -16,7 +16,7 @@ def test_index_of_insanity():
         print(vuln)
 
     assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].description == Description.ARRAY_INDEX_ATTACK 
+    assert vulnerabilities[0].description == Description.ARRAY_INDEX_ATTACK.value 
     
 
 test_index_of_insanity()

@@ -16,7 +16,7 @@ def test_the_transient_path():
         print(vuln)
 
     assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].description == Description.MISSING_PATH 
+    assert vulnerabilities[0].description == Description.MISSING_PATH.value 
     
 
 test_the_transient_path()

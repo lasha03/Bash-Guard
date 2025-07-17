@@ -16,8 +16,8 @@ def test_tale_of_the_test():
         print(vuln)
 
     assert len(vulnerabilities) == 3
-    assert vulnerabilities[0].description == Description.MISSING_PATH
-    assert vulnerabilities[1].description == Description.COMMAND_INJECTION 
-    assert vulnerabilities[2].description == Description.COMMAND_INJECTION
+    assert vulnerabilities[0].description == Description.MISSING_PATH.value
+    assert vulnerabilities[1].description == Description.COMMAND_INJECTION.value 
+    assert vulnerabilities[2].description == Description.COMMAND_INJECTION.value
 
 test_tale_of_the_test()

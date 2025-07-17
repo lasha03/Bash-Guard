@@ -16,7 +16,7 @@ def test_globbing_harmony():
         print(vuln)
 
     assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION 
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value 
     
 
 test_globbing_harmony()

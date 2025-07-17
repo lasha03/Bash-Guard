@@ -16,10 +16,10 @@ def test_saga_of_sanitization():
         print(vuln)
 
     assert len(vulnerabilities) == 4
-    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION
-    assert vulnerabilities[1].description == Description.VARIABLE_EXPANSION
-    assert vulnerabilities[2].description == Description.COMMAND_INJECTION
-    assert vulnerabilities[3].description == Description.COMMAND_INJECTION
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value
+    assert vulnerabilities[1].description == Description.VARIABLE_EXPANSION.value
+    assert vulnerabilities[2].description == Description.COMMAND_INJECTION.value
+    assert vulnerabilities[3].description == Description.COMMAND_INJECTION.value
 
 
 test_saga_of_sanitization()

@@ -16,7 +16,7 @@ def test_secrets_of_the_shell():
         print(vuln)
 
     assert len(vulnerabilities) == 2
-    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION
-    assert vulnerabilities[1].description == Description.COMMAND_INJECTION
+    assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value
+    assert vulnerabilities[1].description == Description.COMMAND_INJECTION.value
 
 test_secrets_of_the_shell()
