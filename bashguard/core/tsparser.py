@@ -79,6 +79,10 @@ class TSParser:
                             self._find_tainted_variables(part, tainted_variables, command_name, all_variables)
                     else:
                         self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
+                elif child.type == "variable_assignment":
+                    # This is an environment variable assignment for this command only
+                    # Don't treat it as a global assignment - it doesn't affect the global variable
+                    pass
                 else:
                     self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
             
@@ -296,6 +300,7 @@ class TSParser:
 
             1. If value contains user-inputted variable, like "$1", "$_", "$@" etc.
             2. If value contains user-controlled environment variable, like "USER", "HOME", "PATH", "SHELL", "TERM", "DISPLAY" etc.
+            3. If value contains command substitution, which can produce unpredictable output.
         """
 
         ref_variable: str = ""
@@ -306,6 +311,9 @@ class TSParser:
             ref_variable = value.variable
         elif isinstance(value, ValuePlainVariable):
             ref_variable = value.variable
+        elif isinstance(value, ValueCommandSubtitution):
+            """Command substitution can produce unpredictable output and should be considered tainted."""
+            return True
         
         # Check for command line arguments
         if (ref_variable in list(map(str, range(10)))) or (ref_variable in ("@", "*")):
@@ -329,6 +337,8 @@ class TSParser:
         elif isinstance(value, ValuePlainVariable):
             vars_in_value.add(value.variable)
         elif isinstance(value, ValueUserInput):
+            return True
+        elif isinstance(value, ValueCommandSubtitution):
             return True
 
         return any(var in tainted_variables for var in vars_in_value)

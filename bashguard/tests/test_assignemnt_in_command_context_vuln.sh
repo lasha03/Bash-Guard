@@ -1,3 +1,8 @@
 #!/usr/bin/bash
 
-FOO="$1" bash -c 'echo $FOO'
+PATH=/usr/bin
+
+FOO="$1"
+FOO=hello bash -c 'echo $FOO'
+
+$FOO
