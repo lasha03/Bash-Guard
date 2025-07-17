@@ -4,10 +4,12 @@ Main entry point for BashGuard
 """
 
 import click
+import sys
 from pathlib import Path
 
 from bashguard.analyzers import ScriptAnalyzer
 from bashguard import __version__
+from bashguard.core.reporter import Reporter
 
 
 @click.group()
@@ -25,13 +27,26 @@ def cli():
 def analyze(script_path, output, format, verbose):
     """Analyze a Bash script for security vulnerabilities."""
     script_path = Path(script_path)
+
+    if not script_path.is_file():
+        click.echo(f"Error: {script_path} is not a file", err=True)
+        sys.exit(1)
     
     click.echo(f"Analyzing {script_path}...")
 
     analyzer = ScriptAnalyzer(script_path, verbose=1)
     vulnerabilities = analyzer.analyze()
 
-    print(vulnerabilities)
+    reporter = Reporter(format=format)
+    report = reporter.generate_report(vulnerabilities)
+    
+    if output:
+        output_path = Path(output)
+        with open(output_path, "w") as f:
+            f.write(report)
+        click.echo(f"Report saved to {output_path}")
+    else:
+        click.echo(report)
 
 if __name__ == "__main__":
     cli()

@@ -66,7 +66,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
-                    description=Description.COMMAND_INJECTION,
+                    description=Description.COMMAND_INJECTION.value,
                     file_path=self.script_path,
                     line_number=pair.line,
                     column=pair.column,
@@ -107,7 +107,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
-                    description=Description.COMMAND_INJECTION,
+                    description=Description.COMMAND_INJECTION.value,
                     file_path=self.script_path,
                     line_number=var.line,
                     column=var.column,
@@ -145,7 +145,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.ARRAY_INDEX_ATTACK,
                         severity=SeverityLevel.HIGH,
-                        description=Description.ARRAY_INDEX_ATTACK,
+                        description=Description.ARRAY_INDEX_ATTACK.value,
                         file_path=self.script_path,
                         line_number=line_number,
                         column=subscript.column,
@@ -195,7 +195,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.HIGH,
-                description=Description.COMMAND_INJECTION,
+                description=Description.COMMAND_INJECTION.value,
                 file_path=self.script_path,
                 line_number=command.line,
                 column=command.column,
@@ -226,7 +226,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.CRITICAL,
-                    description=Description.EVAL_SOURCE,
+                    description=Description.EVAL_SOURCE.value,
                     file_path=self.script_path,
                     line_number=cmd.line,
                     column=cmd.column,
@@ -243,7 +243,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.CRITICAL,
-                description=Description.EVAL_SOURCE,
+                description=Description.EVAL_SOURCE.value,
                 file_path=self.script_path,
                 line_number=cmd.line,
                 column=cmd.column,

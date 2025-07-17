@@ -92,7 +92,7 @@ class ShellcheckAnalyzer(BaseAnalyzer):
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
                         severity=SeverityLevel.HIGH,
-                        description=Description.VARIABLE_EXPANSION,
+                        description=Description.VARIABLE_EXPANSION.value,
                         file_path=self.script_path,
                         line_number=line_number,
                         column=column,
@@ -104,7 +104,7 @@ class ShellcheckAnalyzer(BaseAnalyzer):
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.UNQUOTED_COMMAND_SUBSTITUTION,
                         severity=SeverityLevel.HIGH,
-                        description=Description.UNQUOTED_COMMAND_SUBSTITUTION,
+                        description=Description.UNQUOTED_COMMAND_SUBSTITUTION.value,
                         file_path=self.script_path,
                         line_number=line_number,
                         column=column,

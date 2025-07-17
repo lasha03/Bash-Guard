@@ -53,7 +53,7 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
                 vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.PARAMETER_EXPANSION,
                 severity=SeverityLevel.MEDIUM,
-                description=Description.PARAMETER_EXPANSION_0,
+                description=Description.PARAMETER_EXPANSION_0.value,
 
                 file_path=self.script_path,
                 line_number=command.line,

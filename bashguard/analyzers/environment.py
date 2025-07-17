@@ -40,7 +40,7 @@ class EnvironmentAnalyzer(BaseAnalyzer):
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.ENVIRONMENT,
                 severity=SeverityLevel.MEDIUM,
-                description=Description.MISSING_PATH,
+                description=Description.MISSING_PATH.value,
 
                 file_path=self.script_path,
                 line_number=-1,

@@ -70,7 +70,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
                 severity=SeverityLevel.HIGH,
-                description=Description.VARIABLE_EXPANSION,
+                description=Description.VARIABLE_EXPANSION.value,
                 file_path=self.script_path,
                 line_number=var.line,
                 column=var.column,
@@ -103,7 +103,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
                         vulnerability = Vulnerability(
                             vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
                             severity=SeverityLevel.HIGH,
-                            description=Description.VARIABLE_EXPANSION,
+                            description=Description.VARIABLE_EXPANSION.value,
                             file_path=self.script_path,
                             line_number=var.line,
                             column=column,
