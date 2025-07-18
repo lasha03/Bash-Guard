@@ -6,10 +6,6 @@ declare -- "$1"="$2"
 
 journey of the path
 
-
-precision of parameters
-sh
-
 --fix feature
 
 cd $WORKDIR
