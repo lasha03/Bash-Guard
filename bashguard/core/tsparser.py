@@ -354,21 +354,27 @@ class TSParser:
             - Prefix, like '!' in "${!var}"
             - Used variable name
         """
-        def toname(node: Node) -> str | None:
-            if node.type in ("subscript", "variable_name"):
+        def toname(node: Node, indent = 0) -> str | None:
+            # print(f'NODE: {node.text.decode()}')
+            # print("    " * indent + f"{node.type}: {node.text.decode()}")
+
+            if node.type in ("subscript", "variable_name", "special_variable_name"):
                 return node.text.decode()
 
             for child in node.children:
-                result = toname(child)
+                result = toname(child, indent + 1)
                 if result:
                     return result
             
             return None
 
+        # print(f'Value Node Text: {value_node.text.decode()}')
         inner_variable = toname(value_node)
 
         # now deduce prefix
         node_text = value_node.text.decode()
+        # print(f'Inner variable: {inner_variable}')
+        # print(f'NODE_TEXT: {node_text}')
         prefix = node_text[node_text.find('{')+1:node_text.find(inner_variable)]
         
         return ValueParameterExpansion(
