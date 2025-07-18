@@ -91,7 +91,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             var_name = var.name
             if var_name in self.user_input_vars:
                 
-                test_condition = self._extract_test_condition(self.lines[var.line], var.test_command)
+                test_condition = self._extract_test_condition(self.lines[var.line], var.test_command, var.name)
                 if not self.run_superweapon_attack(test_condition, var.name):
                     continue
 
@@ -378,7 +378,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
 
         return False
 
-    def _extract_test_condition(self, line_content: str, test_command: str) -> str:
+    def _extract_test_condition(self, line_content: str, test_command: str, var_name: str) -> str:
         line = line_content.strip()
 
         start_pos = line.find(test_command)
@@ -393,12 +393,14 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         elif test_command == '((':
             matching_bracket = '))'
 
-        # Find the last occurrence of the closing bracket
         end_pos = line.rfind(matching_bracket)
-        if end_pos != -1 and end_pos > start_pos:
-            return line[start_pos:end_pos + len(matching_bracket)]
-        
-        return line[start_pos:]
+        test_condition = line[start_pos:end_pos + len(matching_bracket)]
+        conditions = test_condition.replace(test_command, "").replace(matching_bracket, "").split("&&")
+        for condition in conditions:
+            if var_name in condition:
+                test_condition = f"{test_command} {condition} {matching_bracket}"
+
+        return test_condition
 
     def run_superweapon_attack(self, test_condition: str, var_name: str) -> bool:
         test_condition = test_condition.replace(var_name, "var")

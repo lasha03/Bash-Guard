@@ -13,7 +13,7 @@ def test_superweapon():
     parser = TSParser(bytes(content, 'utf-8'))
     analyzer = CommandInjectionAnalyzer(test_file_path, content, parser)
     vulnerabilities = analyzer.analyze()
-
+    
     assert len(vulnerabilities) == 2
     assert vulnerabilities[0].description == Description.COMMAND_INJECTION.value
     assert vulnerabilities[1].description == Description.COMMAND_INJECTION.value
