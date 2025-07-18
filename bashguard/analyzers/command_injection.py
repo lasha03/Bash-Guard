@@ -39,14 +39,14 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         for command in commands:
             vulnerabilities.extend(self._check_command_injection(command))
             vulnerabilities.extend(self._check_eval_source(command))
+        # print(vulnerabilities)
         
         vulnerabilities.extend(self._check_array_index_attacks())
 
         vulnerabilities.extend(self._check_superweapon_attack())
 
         # Disabled: Variable assignments are not command injection by themselves
-        # vulnerabilities.extend(self._check_declared_pairs())
-        # print(vulnerabilities)
+        vulnerabilities.extend(self._check_declared_pairs())
         
         return vulnerabilities
 

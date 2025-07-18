@@ -284,6 +284,8 @@ class TSParser:
         is_safe = True
         for sensitive_part in variable_value.sensitive_parts:
             if self._is_direct_user_input(sensitive_part) or self._contains_user_input_var(sensitive_part, tainted_variables):
+                if variable_name == "WORKDIR":
+                    print(sensitive_part)
                 is_safe = False
                 break
 
@@ -312,8 +314,7 @@ class TSParser:
         elif isinstance(value, ValuePlainVariable):
             ref_variable = value.variable
         elif isinstance(value, ValueCommandSubtitution):
-            """Command substitution can produce unpredictable output and should be considered tainted."""
-            return True
+            return self._is_command_substitution_risky(value)
         
         # Check for command line arguments
         if (ref_variable in list(map(str, range(10)))) or (ref_variable in ("@", "*")):
@@ -325,6 +326,19 @@ class TSParser:
             return True
 
         return False
+
+    def _is_command_substitution_risky(self, value: ValueCommandSubtitution) -> bool:
+        if not hasattr(value, "command"):
+            return True
+
+        command_name = ""
+        if hasattr(value.command, "name"):
+            command_name = value.command.name
+
+        safe_commands = ['mktemp']
+        if command_name in safe_commands:
+            return False
+        return True
     
     def _contains_user_input_var(self, value: SensitiveValueUnionType, tainted_variables: set[str]) -> bool:
         """
@@ -339,7 +353,7 @@ class TSParser:
         elif isinstance(value, ValueUserInput):
             return True
         elif isinstance(value, ValueCommandSubtitution):
-            return True
+            return self._is_command_substitution_risky(value)
 
         return any(var in tainted_variables for var in vars_in_value)
 
