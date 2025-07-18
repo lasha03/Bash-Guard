@@ -401,6 +401,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         for condition in conditions:
             if f"${var_name}" in condition:
                 conditions_to_keep.append(f"{test_command} {condition} {matching_bracket}")
+            elif var_name in condition:
+                conditions_to_keep.append(f"{test_command} {condition} {matching_bracket}")
 
         return conditions_to_keep
 
