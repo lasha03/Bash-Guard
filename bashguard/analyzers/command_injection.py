@@ -91,8 +91,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             var_name = var.name
             if var_name in self.user_input_vars:
                 
-                test_condition = self._extract_test_condition(self.lines[var.line], var.test_command, var.name)
-                if not self.run_superweapon_attack(test_condition, var.name):
+                test_conditions = self._extract_test_condition(self.lines[var.line], var.test_command, var.name)
+                if not self.run_superweapon_attack(test_conditions, var.name):
                     continue
 
                 vulnerability = Vulnerability(
@@ -396,35 +396,38 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         end_pos = line.rfind(matching_bracket)
         test_condition = line[start_pos:end_pos + len(matching_bracket)]
         conditions = test_condition.replace(test_command, "").replace(matching_bracket, "").split("&&")
+        
+        conditions_to_keep = []
         for condition in conditions:
-            if var_name in condition:
-                test_condition = f"{test_command} {condition} {matching_bracket}"
+            if f"${var_name}" in condition:
+                conditions_to_keep.append(f"{test_command} {condition} {matching_bracket}")
 
-        return test_condition
+        return conditions_to_keep
 
-    def run_superweapon_attack(self, test_condition: str, var_name: str) -> bool:
-        test_condition = test_condition.replace(var_name, "var")
-        var_name = "var"
-        
-        script = f"""
-        WORKDIR=$(mktemp -d) || exit 1
-        echo "pwned.pwned.pwned" > $WORKDIR/flag
-        {var_name}="a[\\$(<$WORKDIR/flag)]"
-        if {test_condition} ; then
-            echo "{var_name}"
-        else
-            echo "{var_name}"
-        fi
-        """
+    def run_superweapon_attack(self, test_conditions: List[str], var_name: str) -> bool:
+        for test_condition in test_conditions:
+            test_condition = test_condition.replace(var_name, "var")
+            var_name = "var"
+            
+            script = f"""
+            WORKDIR=$(mktemp -d) || exit 1
+            echo "pwned.pwned.pwned" > $WORKDIR/flag
+            {var_name}="a[\\$(<$WORKDIR/flag)]"
+            if {test_condition} ; then
+                echo "{var_name}"
+            else
+                echo "{var_name}"
+            fi
+            """
 
-        result = subprocess.run(["bash", "-c", script], 
-                               capture_output=True, 
-                               text=True)
-        
-        out = result.stdout.strip()
-        if "pwned" in out:
-            return True
-        out = result.stderr.strip()
-        if "pwned" in out:
-            return True
+            result = subprocess.run(["bash", "-c", script], 
+                                capture_output=True, 
+                                text=True)
+            
+            out = result.stdout.strip()
+            if "pwned" in out:
+                return True
+            out = result.stderr.strip()
+            if "pwned" in out:
+                return True
         return False
