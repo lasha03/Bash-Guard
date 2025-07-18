@@ -1,5 +1,5 @@
 import re
-
+import subprocess
 from pathlib import Path
 from typing import List, Set
 from bashguard.core.vulnerability import Recommendation
@@ -86,24 +86,15 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
 
         injectable_variables = self.parser.get_injectable_variables()
-        # print(injectable_variables)
+        
         for var in injectable_variables:
             var_name = var.name
             if var_name in self.user_input_vars:
-                # Check if the variable is properly quoted in its context
-                if var.line < len(self.lines):
-                    line_content = self.lines[var.line]
-                    # Skip if the variable appears to be properly quoted
-                    # Look for patterns like "${var}" or "${#var}" which are safe
-                    if f'"${{{var_name}' in line_content or f'"${{#{var_name}' in line_content:
-                        continue
-                    
-                    # Skip numeric comparisons and basic test conditions that should be treated as variable expansion
-                    # These are unquoted variable issues, not command injection
-                    import re
-                    if re.search(r'\$' + var_name + r'\s*-[a-z]+\s*', line_content):  # -eq, -ne, -gt, etc.
-                        continue
-                        
+                
+                test_condition = self._extract_test_condition(self.lines[var.line], var.test_command)
+                if not self.run_superweapon_attack(test_condition, var.name):
+                    continue
+
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
@@ -385,4 +376,53 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 if any(pattern in inner_cmd for pattern in patterns):
                     return True
 
+        return False
+
+    def _extract_test_condition(self, line_content: str, test_command: str) -> str:
+        line = line_content.strip()
+
+        start_pos = line.find(test_command)
+        if start_pos == -1:
+            return line
+        
+        matching_bracket = ""
+        if test_command == '[':
+            matching_bracket = ']'
+        elif test_command == '[[':
+            matching_bracket = ']]'
+        elif test_command == '((':
+            matching_bracket = '))'
+
+        # Find the last occurrence of the closing bracket
+        end_pos = line.rfind(matching_bracket)
+        if end_pos != -1 and end_pos > start_pos:
+            return line[start_pos:end_pos + len(matching_bracket)]
+        
+        return line[start_pos:]
+
+    def run_superweapon_attack(self, test_condition: str, var_name: str) -> bool:
+        test_condition = test_condition.replace(var_name, "var")
+        var_name = "var"
+        
+        script = f"""
+        WORKDIR=$(mktemp -d) || exit 1
+        echo "pwned.pwned.pwned" > $WORKDIR/flag
+        {var_name}="a[\\$(<$WORKDIR/flag)]"
+        if {test_condition} ; then
+            echo "{var_name}"
+        else
+            echo "{var_name}"
+        fi
+        """
+
+        result = subprocess.run(["bash", "-c", script], 
+                               capture_output=True, 
+                               text=True)
+        
+        out = result.stdout.strip()
+        if "pwned" in out:
+            return True
+        out = result.stderr.strip()
+        if "pwned" in out:
+            return True
         return False

@@ -126,14 +126,17 @@ class TSParser:
             return tainted_variables
 
         if node.type == "arithmetic_expansion":
-            # detect variables, injectable by a superweapon, in arithmetic expression (( )).  
+            # detect variables, injectable by a superweapon, in arithmetic expression (( )).
+            test_command = node.children[0].type
+
             def rec(node, ok=False):
                 if ok and node.type == 'variable_name':
                     self.injectable_variables.append(
-                        UsedVariable(
+                        InjectableVariable(
                             name=self._get_real_name_of_variable(node.text.decode(), all_variables),
                             line=node.start_point[0],
                             column=node.start_point[1],
+                            test_command=test_command
                         )
                     )
                     # print(node.text.decode())

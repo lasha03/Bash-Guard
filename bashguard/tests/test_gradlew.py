@@ -10,8 +10,8 @@ def test_gradlew():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
-    for vuln in vulnerabilities:
-        print(vuln)
+    # for vuln in vulnerabilities:
+    #     print(vuln)
 
 if __name__ == "__main__":
     test_gradlew()
