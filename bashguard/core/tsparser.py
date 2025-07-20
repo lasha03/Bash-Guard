@@ -6,6 +6,7 @@ import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
 from bashguard.core.types import AssignedVariable, UsedVariable, InjectableVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution, DeclaredPair
+from bashguard.core.logger import Logger
 
 
 class TSParser:
@@ -288,7 +289,7 @@ class TSParser:
         for sensitive_part in variable_value.sensitive_parts:
             if self._is_direct_user_input(sensitive_part) or self._contains_user_input_var(sensitive_part, tainted_variables):
                 if variable_name == "WORKDIR":
-                    print(sensitive_part)
+                    Logger.d(f"sensitive_part: {str(sensitive_part)}")
                 is_safe = False
                 break
 

@@ -5,6 +5,7 @@ Reporter utilities for generating vulnerability reports.
 import json
 from typing import List, Dict, Any
 from colorama import Fore, Style, init
+from bashguard.core.logger import Logger
 
 from bashguard.core.vulnerability import Vulnerability, SeverityLevel
 
@@ -134,7 +135,7 @@ class Reporter:
                 }
             }
 
-            print(type(vuln.description), vuln.description )
+            Logger.d(f"{type(vuln.description)} {vuln.description}")
             
             if vuln.column:
                 vuln_data["location"]["column"] = vuln.column

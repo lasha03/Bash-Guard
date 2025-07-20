@@ -19,16 +19,15 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
     - Missing default values for parameter expansions
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser):
         """
         Initialize the variable expansion analyzer.
         
         Args:
             script_path: Path to the script being analyzed
             content: Content of the script
-            verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, parser, verbose)
+        super().__init__(script_path, content, parser)
     
     def analyze(self) -> List[Vulnerability]:
         """

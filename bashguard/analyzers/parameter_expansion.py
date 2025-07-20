@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
+from bashguard.core.logger import Logger
 from bashguard.core.types import Command
 
 class ParameterExpansionAnalyzer(BaseAnalyzer):
@@ -16,16 +17,15 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
     - Expanding 0-th parameter
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser):
         """
         Initialize the parameter expansion analyzer.
         
         Args:
             script_path: Path to the script being analyzed
             content: Content of the script
-            verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, parser, verbose)
+        super().__init__(script_path, content, parser)
     
     def analyze(self) -> List[Vulnerability]:
         """
@@ -49,7 +49,7 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
 
         for command in commands:
             if command.name == '0':
-                print(command)
+                Logger.d(str(command))
                 vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.PARAMETER_EXPANSION,
                 severity=SeverityLevel.MEDIUM,

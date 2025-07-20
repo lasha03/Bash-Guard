@@ -11,14 +11,13 @@ class ShellcheckAnalyzer(BaseAnalyzer):
     Analyze script using "shellcheck" for syntax errors.
     """
     
-    def __init__(self, script_path: Path, content: str, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str):
         """
         Args:
             script_path: Path to the script being analyzed
             content: Content of the script
-            verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, verbose)
+        super().__init__(script_path, content, None)
     
     def analyze(self) -> list[str]:
         """

@@ -13,16 +13,15 @@ class EnvironmentAnalyzer(BaseAnalyzer):
     Analyzer that detects if PATH variable is missing in a shell script.
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser, verbose: bool = False):
+    def __init__(self, script_path: Path, content: str, parser: TSParser):
         """
         Initialize the PATH related analyzer.
         
         Args:
             script_path: Path to the script being analyzed
             content: Content of the script
-            verbose: Whether to enable verbose logging
         """
-        super().__init__(script_path, content, parser, verbose)
+        super().__init__(script_path, content, parser)
     
     def analyze(self) -> List[Vulnerability]:
         """

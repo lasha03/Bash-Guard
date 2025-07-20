@@ -8,22 +8,21 @@ from typing import List
 from bashguard.analyzers import VariableExpansionAnalyzer, ParameterExpansionAnalyzer, CommandInjectionAnalyzer, EnvironmentAnalyzer
 from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer
 from bashguard.core import Vulnerability, BaseAnalyzer, TSParser, VulnerabilityType
+from bashguard.core.logger import Logger
 
 class ScriptAnalyzer:
     """
     Main analyzer class that coordinates the analysis process.
     """
     
-    def __init__(self, script_path: Path, verbose: bool = False):
+    def __init__(self, script_path: Path):
         """
         Initialize the script analyzer.
         
         Args:
             script_path: Path to the script to analyze
-            verbose: Whether to enable verbose logging
         """
         self.script_path = script_path
-        self.verbose = verbose
         self.content = self._read_script()
 
         parser = TSParser(bytes(self.content, 'utf-8'))
@@ -37,11 +36,11 @@ class ScriptAnalyzer:
     def _init_analyzers(self, parser: TSParser):
         """Get all analyzers to be used for the analysis."""
         self.analyzers: list[BaseAnalyzer] = [
-            ShellcheckAnalyzer(self.script_path, self.content, self.verbose),
-            EnvironmentAnalyzer(self.script_path, self.content, parser, self.verbose),
-            ParameterExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
-            VariableExpansionAnalyzer(self.script_path, self.content, parser, self.verbose),
-            CommandInjectionAnalyzer(self.script_path, self.content, parser, self.verbose)
+            ShellcheckAnalyzer(self.script_path, self.content),
+            EnvironmentAnalyzer(self.script_path, self.content, parser),
+            ParameterExpansionAnalyzer(self.script_path, self.content, parser),
+            VariableExpansionAnalyzer(self.script_path, self.content, parser),
+            CommandInjectionAnalyzer(self.script_path, self.content, parser)
         ]
     
     def analyze(self) -> List[Vulnerability]:
@@ -54,18 +53,15 @@ class ScriptAnalyzer:
         all_vulnerabilities = []
 
         for analyzer in self.analyzers:
-            if self.verbose:
-                print(f"Running {analyzer.__class__.__name__}...")
+            Logger.v(f"Running {analyzer.__class__.__name__}...")
                 
             vulnerabilities = analyzer.analyze()
 
             if any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
-                if self.verbose:
-                    print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
+                print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
                 break
 
-            if self.verbose:
-                print(f"Found {len(vulnerabilities)} vulnerabilities.")
+            Logger.v(f"Found {len(vulnerabilities)} vulnerabilities.")
             
             all_vulnerabilities.extend(vulnerabilities)
         

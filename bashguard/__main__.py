@@ -7,6 +7,7 @@ import click
 import sys
 from pathlib import Path
 
+from bashguard.core.logger import Logger
 from bashguard.analyzers import ScriptAnalyzer
 from bashguard import __version__
 from bashguard.core.reporter import Reporter
@@ -35,9 +36,13 @@ def analyze(script_path, output, format, verbose, fix):
         click.echo(f"Error: {script_path} is not a file", err=True)
         sys.exit(1)
     
+    # Initialize global logger
+    # verbosity can be specified by the user, debug flag is for internal use only.
+    Logger.init(verbose, False)
+
     click.echo(f"Analyzing {script_path}...")
 
-    analyzer = ScriptAnalyzer(script_path, verbose=1)
+    analyzer = ScriptAnalyzer(script_path)
     vulnerabilities = analyzer.analyze()
 
     reporter = Reporter(format=format)
