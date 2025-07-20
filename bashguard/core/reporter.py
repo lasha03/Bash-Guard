@@ -3,6 +3,7 @@ Reporter utilities for generating vulnerability reports.
 """
 
 import json
+from pathlib import Path
 from typing import List, Dict, Any
 from colorama import Fore, Style, init
 from bashguard.core.logger import Logger
@@ -19,13 +20,14 @@ class Reporter:
     Uses Factory pattern to create different report formats.
     """
     
-    def __init__(self, format: str = "text"):
+    def __init__(self, file_path: Path, format: str = "text"):
         """
         Initialize the reporter.
         
         Args:
             format: The output format (text, json, html)
         """
+        self.file_path = file_path
         self.format = format
     
     def generate_report(self, vulnerabilities: List[Vulnerability]) -> str:
@@ -52,7 +54,7 @@ class Reporter:
         if not vulnerabilities:
             return "No vulnerabilities found."
         
-        report = ["BashGuard Security Analysis Report", "=" * 40, ""]
+        report = ["BashGuard Security Analysis Report", "=" * 40, "", f'File: {self.file_path}', ""]
         report.append(f"Total vulnerabilities found: {len(vulnerabilities)}")
         
         # Group by severity
@@ -73,7 +75,7 @@ class Reporter:
         report.append("")
         
         # Sort vulnerabilities by severity (critical first)
-        sorted_vulns = []
+        sorted_vulns: list[Vulnerability] = []
         for severity in [SeverityLevel.CRITICAL, SeverityLevel.HIGH, SeverityLevel.MEDIUM, SeverityLevel.LOW]:
             sorted_vulns.extend(by_severity[severity])
         
@@ -90,15 +92,25 @@ class Reporter:
                 color = Fore.WHITE
             
             report.append(f"{color}[{i}] {vuln.vulnerability_type.name} ({vuln.severity.name}){Style.RESET_ALL}")
-            report.append(f"File: {vuln.file_path}")
-            report.append(f"Line: {vuln.line_number}" + (f", Column: {vuln.column}" if vuln.column else ""))
-            report.append(f"Description: {vuln.description}")
-            
+            report.append(f"Line {vuln.line_number}:")
+
             if vuln.line_content:
-                report.append(f"Code: {vuln.line_content}")
-            
-            if vuln.recommendation:
-                report.append(f"Recommendation: {vuln.recommendation}")
+                report.append(vuln.line_content)
+
+                # add Shellcheck-like pointer
+                col = (vuln.column or 1) - 1
+                pointer = (" " * col) + "^--- " + vuln.description + '\n'
+                report.append(pointer)
+
+                # follow with recommendation (if exists)
+                if vuln.recommendation:
+                    report.append(f"Recommendation: {vuln.recommendation}")
+
+            else:
+                # Fallback for cases without line content
+                report.append(f"Description: {vuln.description}")
+                if vuln.recommendation:
+                    report.append(f"Recommendation: {vuln.recommendation}")
             
             if vuln.references:
                 report.append("References:")

@@ -40,12 +40,10 @@ def analyze(script_path, output, format, verbose, fix):
     # verbosity can be specified by the user, debug flag is for internal use only.
     Logger.init(verbose, False)
 
-    click.echo(f"Analyzing {script_path}...")
-
     analyzer = ScriptAnalyzer(script_path)
     vulnerabilities = analyzer.analyze()
 
-    reporter = Reporter(format=format)
+    reporter = Reporter(file_path=script_path, format=format)
     report = reporter.generate_report(vulnerabilities)
     
     if output:
