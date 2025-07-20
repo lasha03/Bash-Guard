@@ -10,6 +10,8 @@ from pathlib import Path
 from bashguard.analyzers import ScriptAnalyzer
 from bashguard import __version__
 from bashguard.core.reporter import Reporter
+from bashguard.core.vulnerability import Description
+from bashguard.core.fixer import Fixer
 
 
 @click.group()
@@ -24,7 +26,8 @@ def cli():
 @click.option("--output", "-o", type=click.Path(), help="Output file for the report")
 @click.option("--format", "-f", type=click.Choice(["text", "json", "html"]), default="text", help="Output format")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-def analyze(script_path, output, format, verbose):
+@click.option("--fix", is_flag=True, help="Automatically fix issues in the script")
+def analyze(script_path, output, format, verbose, fix):
     """Analyze a Bash script for security vulnerabilities."""
     script_path = Path(script_path)
 
@@ -47,6 +50,18 @@ def analyze(script_path, output, format, verbose):
         click.echo(f"Report saved to {output_path}")
     else:
         click.echo(report)
+    
+    if fix:
+        click.echo(f"Starting to fix vulnerabilities")
+        click.echo("="*40 + "\n")
+        fixable_vulnerabilities = [vuln for vuln in vulnerabilities if vuln.description in [Description.VARIABLE_EXPANSION.value]]
+
+        if len(fixable_vulnerabilities): 
+            fixer = Fixer(script_path)
+            fixer.fix(fixable_vulnerabilities)
+            click.echo(f"Code has been fixed")
+        else:
+            click.echo(f"Nothing to fix\n")
 
 if __name__ == "__main__":
     cli()

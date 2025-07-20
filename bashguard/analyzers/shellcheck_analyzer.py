@@ -85,18 +85,28 @@ class ShellcheckAnalyzer(BaseAnalyzer):
                     )
                     vulnerabilities.append(vulnerability)
         
-                if "SC2086 (info): Double quote to prevent globbing and word splitting." in info or \
-                    "SC2060 (warning): Quote parameters to tr to prevent glob expansion." in info or \
-                    "SC2053 (warning): Quote the right-hand side of = in [[ ]] to prevent glob matching." in info:
-                    
+                if "SC2086 (info): Double quote to prevent globbing and word splitting." in info:
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
-                        severity=SeverityLevel.HIGH,
+                        severity=SeverityLevel.MEDIUM,
                         description=Description.VARIABLE_EXPANSION.value,
                         file_path=self.script_path,
                         line_number=line_number,
                         column=column,
                         recommendation=Recommendation.VARIABLE_EXPANSION
+                    )
+                    vulnerabilities.append(vulnerability)
+
+                if "SC2060 (warning): Quote parameters to tr to prevent glob expansion." in info or \
+                    "SC2053 (warning): Quote the right-hand side of = in [[ ]] to prevent glob matching." in info:
+                    vulnerability = Vulnerability(
+                        vulnerability_type=VulnerabilityType.GLOB_EXPANSION,
+                        severity=SeverityLevel.MEDIUM,
+                        description=Description.GLOB_EXPANSION.value,
+                        file_path=self.script_path,
+                        line_number=line_number,
+                        column=column,
+                        recommendation=Recommendation.GLOB_EXPANSION
                     )
                     vulnerabilities.append(vulnerability)
 
