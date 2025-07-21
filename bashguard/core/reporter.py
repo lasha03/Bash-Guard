@@ -123,15 +123,20 @@ class Reporter:
     
     def _generate_json_report(self, vulnerabilities: List[Vulnerability]) -> str:
         """Generate a JSON report."""
+        severity_counts = {
+            SeverityLevel.CRITICAL.name: 0,
+            SeverityLevel.HIGH.name: 0,
+            SeverityLevel.MEDIUM.name: 0,
+            SeverityLevel.LOW.name: 0
+        }
+
+        for vuln in vulnerabilities:
+            severity_counts[vuln.severity.name] += 1
+        
         report_data = {
             "summary": {
                 "total": len(vulnerabilities),
-                "by_severity": {
-                    "critical": len([v for v in vulnerabilities if v.severity == SeverityLevel.CRITICAL]),
-                    "high": len([v for v in vulnerabilities if v.severity == SeverityLevel.HIGH]),
-                    "medium": len([v for v in vulnerabilities if v.severity == SeverityLevel.MEDIUM]),
-                    "low": len([v for v in vulnerabilities if v.severity == SeverityLevel.LOW])
-                }
+                "by_severity": severity_counts
             },
             "vulnerabilities": []
         }
@@ -143,12 +148,10 @@ class Reporter:
                 "description": vuln.description,
                 "location": {
                     "file": str(vuln.file_path),
-                    "line": vuln.line_number
+                    "line": vuln.line_number,
                 }
             }
 
-            Logger.d(f"{type(vuln.description)} {vuln.description}")
-            
             if vuln.column:
                 vuln_data["location"]["column"] = vuln.column
             
@@ -156,7 +159,7 @@ class Reporter:
                 vuln_data["code"] = vuln.line_content
             
             if vuln.recommendation:
-                vuln_data["recommendation"] = vuln.recommendation
+                vuln_data["recommendation"] = str(vuln.recommendation)
             
             if vuln.references:
                 vuln_data["references"] = vuln.references
@@ -166,7 +169,7 @@ class Reporter:
             
             report_data["vulnerabilities"].append(vuln_data)
         
-        return json.dumps(report_data, indent=2)
+        return json.dumps(report_data, indent=4)
     
     def _generate_html_report(self, vulnerabilities: List[Vulnerability]) -> str:
         """Generate an HTML report."""
