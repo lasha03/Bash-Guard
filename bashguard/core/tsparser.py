@@ -32,7 +32,7 @@ class TSParser:
         # self._parse(self.content)
         
         self.parser.reset()
-        tree = self.parser.parse(content)
+        tree = self.parser.parse(self.content)
         self.tainted_variables = set()
         self.function_definitions = {}
         self.injectable_variables: list[InjectableVariable] = []

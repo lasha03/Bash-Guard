@@ -23,7 +23,7 @@ class ScriptAnalyzer:
             script_path: Path to the script to analyze
         """
         self.script_path = script_path
-        self.content = self._read_script()
+        self.content = self._read_script().expandtabs(8)
 
         parser = TSParser(bytes(self.content, 'utf-8'))
         self._init_analyzers(parser)

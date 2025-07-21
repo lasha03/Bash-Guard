@@ -32,19 +32,24 @@ class Fixer:
 
             # print("line_content: \n", line_content.encode())
 
-            original_line_content = line_content
+            original_line_content = self.content[line_number]
             # expand tabs to spaces
-            line_content = line_content.expandtabs(8)
+            line_content = line_content
 
-            # print("line_content: \n", line_content)
+            # print("original_line_content: \n", original_line_content)
             # print(column)
+
+            while column > 0 and line_content[column] != '$':
+                column -= 1
+
+            assert line_content[column] == '$'
 
             pre = line_content[:column]
             suf = line_content[column:]
 
             # extract var name
             import re
-            match = re.match(r'\$[a-zA-Z0-9_]*', suf)
+            match = re.match(r'[\$a-zA-Z0-9_*#@]*', suf)
             # print(suf)
             assert match
 

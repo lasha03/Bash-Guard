@@ -38,7 +38,7 @@ def analyze(script_path, output, format, verbose, fix):
     
     # Initialize global logger
     # verbosity can be specified by the user, debug flag is for internal use only.
-    Logger.init(verbose, False)
+    Logger.init(verbose, True)
 
     analyzer = ScriptAnalyzer(script_path)
     vulnerabilities = analyzer.analyze()

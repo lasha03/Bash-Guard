@@ -68,14 +68,15 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
         if not self._is_properly_quoted(var):
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
-                severity=SeverityLevel.HIGH,
+                severity=SeverityLevel.MEDIUM,
                 description=Description.VARIABLE_EXPANSION.value,
                 file_path=self.script_path,
                 line_number=var.line,
                 column=var.column,
-                line_content=self.lines[var.line] if var.line < len(self.lines) else None,
+                # line_content=self.lines[var.line] if var.line < len(self.lines) else None,
                 recommendation=Recommendation.VARIABLE_EXPANSION
             )
+            # print(var.column)
             vulnerabilities.append(vulnerability)
         return vulnerabilities
 
@@ -101,7 +102,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
                         column = getattr(sensitive_part, 'column_frame', (var.column, var.column))[0]
                         vulnerability = Vulnerability(
                             vulnerability_type=VulnerabilityType.VARIABLE_EXPANSION,
-                            severity=SeverityLevel.HIGH,
+                            severity=SeverityLevel.MEDIUM,
                             description=Description.VARIABLE_EXPANSION.value,
                             file_path=self.script_path,
                             line_number=var.line,

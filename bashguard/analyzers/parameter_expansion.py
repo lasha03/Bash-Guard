@@ -49,17 +49,17 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
 
         for command in commands:
             if command.name == '0':
-                Logger.d(str(command))
+                # Logger.d(str(command))
                 vulnerability = Vulnerability(
-                vulnerability_type=VulnerabilityType.PARAMETER_EXPANSION,
-                severity=SeverityLevel.MEDIUM,
-                description=Description.PARAMETER_EXPANSION_0.value,
+                    vulnerability_type=VulnerabilityType.PARAMETER_EXPANSION,
+                    severity=SeverityLevel.MEDIUM,
+                    description=Description.PARAMETER_EXPANSION_0.value,
 
-                file_path=self.script_path,
-                line_number=command.line,
-                column=command.column,
-                line_content=None,
-            )
+                    file_path=self.script_path,
+                    line_number=command.line,
+                    column=command.column,
+                    line_content=None,
+                )
 
                 vulnerabilities.append(vulnerability)
         
