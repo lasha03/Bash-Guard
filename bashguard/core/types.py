@@ -79,6 +79,7 @@ class AssignedVariable:
     value: Value
     line: int
     column: int
+    is_in_command_context: bool
 
 @dataclass
 class UsedVariable:

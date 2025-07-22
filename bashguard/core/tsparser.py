@@ -38,16 +38,16 @@ class TSParser:
         self.injectable_variables: list[InjectableVariable] = []
         self.declared_pairs: list[DeclaredPair] = []  # pairs of variables declared with declare, typeset and so on.
 
-        self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set())
-    
-    def _find_tainted_variables(self, node: Node, tainted_variables: set[str], parent_function_name: str, all_variables: set[str]):
+        self._find_tainted_variables(tree.root_node, self.tainted_variables, "", set(), 0, 0)
+
+    def _find_tainted_variables(self, node: Node, tainted_variables: set[str], parent_function_name: str, all_variables: set[str], base_line=0, base_column=0):
         """ 
         Finds all the variables that might be influenced by a user.
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
         # print(node.type)
 
-        # print("hereeeeee", node.type, node.text.decode())
+        # print("hereeeeee", parent_function_name, node.type, node.text.decode(), parent_function_name, base_line, base_column)
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global
@@ -66,26 +66,26 @@ class TSParser:
         # save command with its argument. If command is read save the corresopondig argument 
         # as tainted variable
         if node.type == "command":
-            self._save_command(node, all_variables, tainted_variables, parent_function_name)
-
-           
+            self._save_command(node, all_variables, tainted_variables, parent_function_name, base_line, base_column)
+      
             # check if a command is calling some function and if so, jump to the matching node
             for child in node.children:
-                if child.type == "command_name":
+                if child.type == "variable_assignment":
+                    # This is an environment variable assignment for this command only
+                    # This case is handled below
+                    return tainted_variables
+                elif child.type == "command_name":
                     command_name = child.children[0].text.decode()
                     if command_name in self.function_definitions:
                         # Jump to parts of the function definition node. 
                         # Directly jumping to function definition node will return, because of check.
                         for part in self.function_definitions[command_name].children:
-                            self._find_tainted_variables(part, tainted_variables, command_name, all_variables)
+                            self._find_tainted_variables(part, tainted_variables, command_name, all_variables, base_line, base_column)
                     else:
-                        self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
-                elif child.type == "variable_assignment":
-                    # This is an environment variable assignment for this command only
-                    # Don't treat it as a global assignment - it doesn't affect the global variable
-                    pass
+                        self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables, base_line, base_column)
+
                 else:
-                    self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
+                    self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables, base_line, base_column)
             
             return tainted_variables
 
@@ -98,8 +98,8 @@ class TSParser:
                     self.injectable_variables.append(
                         InjectableVariable(
                             name=self._get_real_name_of_variable(node.text.decode(), all_variables),
-                            line=node.start_point[0],
-                            column=node.start_point[1],
+                            line=base_line+node.start_point[0],
+                            column=base_column+node.start_point[1],
                             test_command=test_command,
                         )
                     )
@@ -108,8 +108,8 @@ class TSParser:
                 # Handle expansion nodes within the test command
                 elif 'expansion' in node.type:
                     if '[' in node.text.decode():
-                        self._save_subscript(node)
-                    self._save_expansion(node)
+                        self._save_subscript(node, base_line, base_column)
+                    self._save_expansion(node, base_line, base_column)
 
                 flags = [
                     '-a', '-b', '-c', '-d', '-e', '-f', '-g', '-G', '-h', '-k', '-L', '-N', '-o', '-O', '-p', '-r', '-s', '-S', '-t', '-u', '-v', '-w', '-x', '-z',
@@ -135,8 +135,8 @@ class TSParser:
                     self.injectable_variables.append(
                         InjectableVariable(
                             name=self._get_real_name_of_variable(node.text.decode(), all_variables),
-                            line=node.start_point[0],
-                            column=node.start_point[1],
+                            line=base_line+node.start_point[0],
+                            column=base_column+node.start_point[1],
                             test_command=test_command
                         )
                     )
@@ -171,8 +171,8 @@ class TSParser:
                             DeclaredPair(
                                 var1=variables[0], 
                                 var2=variables[1], 
-                                line=child.start_point[0],
-                                column=child.start_point[1]
+                                line=base_line+child.start_point[0],
+                                column=base_column+child.start_point[1]
                             )
                         )
 
@@ -184,7 +184,7 @@ class TSParser:
                     var_val = child.text.decode().split('=', maxsplit=1)
                     # since the variable is declared locally its prefix is parent_function_name
                     variable_name = parent_function_name + '.' + var_val[0]
-                    variable_value = self.parse_value_node(child.children[-1], all_variables, tainted_variables, parent_function_name)
+                    variable_value = self.parse_value_node(child.children[-1], all_variables, tainted_variables, parent_function_name, base_line, base_column)
 
                     self._check_tainted(variable_name, variable_value, tainted_variables)
 
@@ -206,16 +206,16 @@ class TSParser:
             
             # Check if this is an array assignment
             if '[' in var_val[0]:
-                self._save_subscript(node)
+                self._save_subscript(node, base_line, base_column)
             
-            variable_value = self.parse_value_node(node.children[-1], all_variables, tainted_variables, parent_function_name)
-
+            variable_value = self.parse_value_node(node.children[-1], all_variables, tainted_variables, parent_function_name, base_line, base_column)
             self.variable_assignments.append(
                 AssignedVariable(
                     name=variable_name, 
                     value=variable_value, 
-                    line=node.start_point[0], 
-                    column=node.start_point[1],
+                    line=base_line+node.start_point[0], 
+                    column=base_column+node.start_point[1],
+                    is_in_command_context=False,
                 )
             )
 
@@ -226,13 +226,13 @@ class TSParser:
         # ar ihendleba
         #(aset casebs shellchecki ichers turme)
         elif node.type == "subscript":
-            self._save_subscript(node)
+            self._save_subscript(node, base_line, base_column)
 
         elif 'expansion' in node.type:
             # Check if this is an array expansion
             if '[' in node.text.decode():
-                self._save_subscript(node)
-            self._save_expansion(node)
+                self._save_subscript(node, base_line, base_column)
+            self._save_expansion(node, base_line, base_column)
             
             # Check if this variable expansion is being used as a command (standalone at statement level)
             if self._is_variable_command_execution(node):
@@ -240,19 +240,19 @@ class TSParser:
                 command = Command(
                     name=var_name,
                     arguments=[],
-                    line=node.start_point[0],
-                    column=node.start_point[1],
+                    line=base_line+node.start_point[0],
+                    column=base_column+node.start_point[1],
                 )
                 self.commands.append(command)
 
         elif node.type == 'if_statement' or node.type == 'case_statement':
             # Variable is tainted if it becomes tainted in any branch of if or case statement 
             for child in node.children:
-                tainted_variables |= self._find_tainted_variables(child, tainted_variables.copy(), parent_function_name, all_variables)
+                tainted_variables |= self._find_tainted_variables(child, tainted_variables.copy(), parent_function_name, all_variables, base_line, base_column)
         
         else:
             for child in node.children:
-                self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables)
+                self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables, base_line, base_column)
 
         for variable in local_variables:
             all_variables.remove(variable)
@@ -401,7 +401,7 @@ class TSParser:
             variable=inner_variable
         )
     
-    def parse_value_node(self, value_node: Node, all_variables, tainted_variables, parent_function_name) -> SensitiveValueUnionType:
+    def parse_value_node(self, value_node: Node, all_variables, tainted_variables, parent_function_name, base_line, base_column) -> SensitiveValueUnionType:
         """
         Parse a value node and return a Value object.
 
@@ -426,14 +426,14 @@ class TSParser:
 
             elif node.type == "command":
                 # handle command substitution, backticks and others here
-                command = self._save_command(node, all_variables, tainted_variables, parent_function_name)
+                command = self._save_command(node, all_variables, tainted_variables, parent_function_name, base_line, base_column)
                 if command:
                     value_command_substitution = ValueCommandSubtitution(command)
                     sensitive_parts.append(value_command_substitution)
 
             #TODO more tests needed
             elif node.type == "subscript":
-                self._save_subscript(node)
+                self._save_subscript(node, base_line, base_column)
             
             for child in node.children:
                 toname(child, sensitive_parts, depth+1)
@@ -447,7 +447,7 @@ class TSParser:
         )
     
 
-    def _save_command(self, node, all_variables, tainted_variables, parent_function_name):
+    def _save_command(self, node, all_variables, tainted_variables, parent_function_name, base_line, base_column):
         """
         Parse and save a command with its arguments using tree-sitter nodes.
         Handles both direct commands and commands stored in variables.
@@ -469,8 +469,28 @@ class TSParser:
             return arg_node.text.decode()
 
         # Find command name
-        for child in node.children:
+        # print(node.type,node.text.decode())
+        for i, child in enumerate(node.children):
+            # print(child.type, child.text.decode(), child.start_point[1])
+
+            if child.type == "variable_assignment":
+                var_val = child.text.decode().split('=', maxsplit=1)
+                original_variable_name = self._get_real_name_of_variable(var_val[0], all_variables)
+                variable_name = f"{original_variable_name}_cmd_ctx_{child.start_point[0]}"
+                variable_value = self.parse_value_node(child.children[-1], all_variables, tainted_variables, parent_function_name, base_line, base_column)
+                self.variable_assignments.append(
+                    AssignedVariable(
+                        name=original_variable_name,
+                        value=variable_value,
+                        line=base_line+child.start_point[0],
+                        column=base_column+child.start_point[1],
+                        is_in_command_context=True,
+                    )
+                )
+                self._check_tainted(variable_name, variable_value, tainted_variables)
+
             if child.type == "command_name":
+                command_column = child.start_point[1]
                 # Command name could be a direct word or a variable
                 if child.children:
                     # If command name is a variable
@@ -495,15 +515,17 @@ class TSParser:
                 arg_value = process_argument_node(child)
                 if arg_value:
                     cmd_args.append(arg_value)
+                # print("here",arg_value, cmd_args)
 
         if cmd_name:
+            # print("here",node.start_point[1], child.start_point[1])
             # Save the command with its arguments
             cmd_name = self._get_real_name_of_variable(cmd_name, all_variables)
             command = Command(
                     name=cmd_name,
                     arguments=cmd_args,
-                    line=node.start_point[0],
-                    column=node.start_point[1],
+                    line=base_line+node.start_point[0],
+                    column=base_column+command_column,
                 )
             self.commands.append(command)
 
@@ -519,19 +541,20 @@ class TSParser:
                                     content="",
                                     sensitive_parts=[ValueUserInput()]
                                 ),
-                                line=node.start_point[0],
-                                column=node.start_point[1],
+                                line=base_line+node.start_point[0],
+                                column=base_column+node.start_point[1],
+                                is_in_command_context=False,
                             )
                         )
                         tainted_variables.add(variable_name)
                         
             # Recursive parsing for commands that execute other commands
-            self._parse_recursive_commands(command, all_variables, tainted_variables, parent_function_name)
+            self._parse_recursive_commands(command, all_variables, tainted_variables, parent_function_name, base_line, base_column)
             
             return command
         return None
 
-    def _parse_recursive_commands(self, command: 'Command', all_variables: set[str], tainted_variables: set[str], parent_function_name: str):
+    def _parse_recursive_commands(self, command: 'Command', all_variables: set[str], tainted_variables: set[str], parent_function_name: str, base_line: int, base_column: int):
         """
         Parse commands that execute other commands (bash -c, eval, etc.)
         and recursively find variables within their string arguments.
@@ -545,84 +568,61 @@ class TSParser:
             return
             
         # For bash -c and sh -c, parse the command string argument
+        base_column += command.column + len(cmd_name) + 1
+        # parent_function_name = str(command.line)
+
+        # print(command)
         if cmd_name in ['bash', 'sh'] and len(command.arguments) >= 2 and command.arguments[0] == '-c':
+            base_column += 4 # for -c
             command_string = command.arguments[1]
-            self._parse_command_string(command_string, command.line, all_variables, tainted_variables, parent_function_name)
+            self._parse_command_string(command_string, command.line, base_column, all_variables, tainted_variables, parent_function_name)
             
         # For eval, source, and . commands, parse all arguments as potential command strings
         elif cmd_name in ['eval', 'source', '.']:
+            base_column += 1
             for arg in command.arguments:
-                self._parse_command_string(arg, command.line, all_variables, tainted_variables, parent_function_name)
+                self._parse_command_string(arg, command.line, base_column, all_variables, tainted_variables, parent_function_name)
 
-    def _parse_command_string(self, command_string: str, base_line: int, all_variables: set[str], tainted_variables: set[str], parent_function_name: str):
+    def _parse_command_string(self, command_string: str, base_line: int, base_column: int, all_variables: set[str], tainted_variables: set[str], parent_function_name: str):
         """
         Parse a command string to find variables and commands within it.
         """
         if not command_string:
             return
-            
+
         try:
             # Parse the command string as bash code
             ts_language = Language(tsbash.language())
             parser = Parser(ts_language)
             
             # Remove outer quotes if present (only single or double, not both)
+            argument_in_command_ctx = False
             clean_string = command_string
             if (clean_string.startswith("'") and clean_string.endswith("'")) or \
                (clean_string.startswith('"') and clean_string.endswith('"')):
+                argument_in_command_ctx = clean_string.startswith("'")
                 clean_string = clean_string[1:-1]
+
+            if not argument_in_command_ctx:
+                for var in self.variable_assignments:
+                    if var.line == base_line and var.is_in_command_context:
+                        var.is_in_command_context = False
+                        break
+            # if not argument_in_command_ctx:
+            #     if '.' in parent_function_name:
+            #         parent_function_name = parent_function_name[parent_function_name.find('.')+1:]
+            #     else:
+            #         parent_function_name = ""
+
+
             tree = parser.parse(clean_string.encode())
-            
-            if tree.root_node:
-                self._find_commands_in_node(tree.root_node, all_variables, tainted_variables, parent_function_name, base_line)
+            self._find_tainted_variables(node=tree.root_node, tainted_variables=tainted_variables, parent_function_name=parent_function_name, all_variables=all_variables, base_line=base_line, base_column=base_column)
+            return
                 
         except Exception as e:
             # If parsing fails, try to at least find simple variable expansions
             self._find_simple_variables_in_string(command_string, base_line)
 
-    def _find_commands_in_node(self, node, all_variables: set[str], tainted_variables: set[str], parent_function_name: str, base_line: int):
-        """
-        Recursively traverse AST nodes to find commands and variables.
-        """
-        if node.type == "command":
-            self._save_command(node, all_variables, tainted_variables, parent_function_name)
-        elif 'expansion' in node.type:
-            # Check if this variable is properly quoted in its immediate context
-            if self._is_variable_quoted_in_context(node):
-                # Skip properly quoted variables in recursive context
-                pass  
-            else:
-                # Always add the variable for variable expansion analysis
-                # The command injection analyzer will handle direct shell execution contexts
-                adjusted_node_line = base_line + node.start_point[0]
-                var_expansion = UsedVariable(
-                    name=node.text.decode(),
-                    line=adjusted_node_line,
-                    column=node.start_point[1],
-                )
-                self.used_variables.append(var_expansion)
-            
-        for child in node.children:
-            self._find_commands_in_node(child, all_variables, tainted_variables, parent_function_name, base_line)
-
-    def _is_variable_quoted_in_context(self, var_node) -> bool:
-        """
-        Check if a variable node is properly quoted in its immediate AST context.
-        """
-        parent = var_node.parent
-        if not parent:
-            return False
-            
-        # Check if the variable is within a quoted string context
-        while parent:
-            if parent.type in ['string', 'raw_string']:
-                # Check if this is a double-quoted string (which allows variable expansion but provides some protection)
-                parent_text = parent.text.decode()
-                if parent_text.startswith('"') and parent_text.endswith('"'):
-                    return True
-            parent = parent.parent
-            
-        return False
 
     def _find_simple_variables_in_string(self, command_string: str, base_line: int):
         """
@@ -642,7 +642,7 @@ class TSParser:
             )
             self.used_variables.append(var_expansion)
 
-    def _save_subscript(self, node: Node) -> None:
+    def _save_subscript(self, node: Node, base_line: int, base_column: int) -> None:
         """
         Parse and save a subscript node.
         Handles array access like array[index] and array assignments.
@@ -691,12 +691,12 @@ class TSParser:
             Subscript(
                 array_name=array_name,
                 index_expression=index_expression,
-                line=node.start_point[0]+1,
-                column=node.start_point[1],
+                line=base_line+node.start_point[0]+1,
+                column=base_column+node.start_point[1],
             )
         )
 
-    def _save_expansion(self, node: Node) -> None:
+    def _save_expansion(self, node: Node, base_line: int, base_column: int) -> None:
         """
         Parse and save an expansion node.
         Handles variable expansions like $var, ${var}, etc.
@@ -705,8 +705,8 @@ class TSParser:
         self.used_variables.append(
             UsedVariable(
                 name=par, 
-                line=node.start_point[0], 
-                column=node.start_point[1],
+                line=base_line+node.start_point[0], 
+                column=base_column+node.start_point[1],
             )
         )
 

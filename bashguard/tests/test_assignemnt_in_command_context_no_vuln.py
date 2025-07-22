@@ -11,6 +11,9 @@ def test_variable_assginemnt_in_command_context():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
+    for v in vulnerabilities:
+        print(v)
+
     # Should detect recursive command parsing but no vulnerabilities since variables are properly quoted
     assert len(vulnerabilities) == 0
 

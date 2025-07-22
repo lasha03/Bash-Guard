@@ -40,7 +40,8 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
 
         used_vars = self.parser.get_used_variables()
         assigned_vars = self.parser.get_variables()
-
+        # print(used_vars)
+        # print(assigned_vars)
         for var in used_vars:
             # Check for unquoted variables
             vulnerabilities.extend(self._check_unquoted_variables(var))
@@ -212,7 +213,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
         # Find the variable in the line
         start = var.column
         end = start + len(var_name)
-        
+
         # Look for the nearest opening quote before the variable
         opening_quote_pos = -1
         for i in range(start - 1, -1, -1):
@@ -230,7 +231,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
                 break
             elif line[i] == quote and quote == '"':  # Handle escaped quotes
                 continue
-        
+
         # Check if both quotes are found and the variable is between them
         if opening_quote_pos != -1 and closing_quote_pos != -1:
             return True
