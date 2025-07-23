@@ -74,7 +74,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
                 file_path=self.script_path,
                 line_number=var.line,
                 column=var.column,
-                # line_content=self.lines[var.line] if var.line < len(self.lines) else None,
+                line_content=self.lines[var.line] if hasattr(self, 'lines') and var.line < len(self.lines) else None,
                 recommendation=Recommendation.VARIABLE_EXPANSION
             )
             # print(var.column)

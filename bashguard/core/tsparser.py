@@ -47,7 +47,6 @@ class TSParser:
         """
         # print(node.type)
 
-        # print("hereeeeee", parent_function_name, node.type, node.text.decode(), parent_function_name, base_line, base_column)
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global

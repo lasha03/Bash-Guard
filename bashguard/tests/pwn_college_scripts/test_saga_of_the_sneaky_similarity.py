@@ -15,9 +15,11 @@ def test_saga_of_the_sneaky_similarity():
     for vuln in vulnerabilities:
         print(vuln)
 
-    assert len(vulnerabilities) == 2
+    assert len(vulnerabilities) == 4
     assert vulnerabilities[0].description == Description.VARIABLE_EXPANSION.value
     assert vulnerabilities[1].description == Description.VARIABLE_EXPANSION.value
+    assert vulnerabilities[2].description == Description.VARIABLE_EXPANSION.value
+    assert vulnerabilities[3].description == Description.VARIABLE_EXPANSION.value
     
 
 test_saga_of_the_sneaky_similarity()

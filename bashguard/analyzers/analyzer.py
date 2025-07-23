@@ -58,7 +58,7 @@ class ScriptAnalyzer:
             vulnerabilities = analyzer.analyze()
 
             if any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
-                print("Shellcheck found some errors. Fix them before detecting security vulnerabilities.")
+                print("Shellcheck found some syntax errors. Fix them before detecting security vulnerabilities.")
                 break
 
             Logger.v(f"Found {len(vulnerabilities)} vulnerabilities.")
@@ -116,14 +116,8 @@ class ScriptAnalyzer:
             # Remove exact duplicates within this line
             seen = set()
             for vuln in filtered_vulns:
-                # For variable expansion vulnerabilities, use a more flexible key that ignores small column differences
-                if vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION:
-                    line_content = vuln.line_content.strip() if vuln.line_content else ""
-                    key = (vuln.vulnerability_type, vuln.line_number, line_content)
-                else:
-                    # For other vulnerability types, use the original detailed key
-                    key = (vuln.vulnerability_type, vuln.line_number, vuln.column, vuln.line_content)
-                
+                # Always include column in the deduplication key for all types
+                key = (vuln.vulnerability_type, vuln.line_number, vuln.column, vuln.line_content)
                 if key not in seen:
                     seen.add(key)
                     deduplicated.append(vuln)
