@@ -3,7 +3,7 @@ from bashguard.core import VulnerabilityType
 from bashguard.core import TSParser
 from pathlib import Path
 from bashguard.analyzers import ScriptAnalyzer
-from bashguard.core.fixer import Fixer
+from bashguard.fixers.fixer import Fixer
 from bashguard.core.vulnerability import Description
 
 def test_variable_expansion():
@@ -13,13 +13,8 @@ def test_variable_expansion():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
-    fixable_vulnerabilities = [vuln for vuln in vulnerabilities if vuln.description in [Description.VARIABLE_EXPANSION.value]]
-
-    # for vuln in fixable_vulnerabilities:
-    #     print(vuln)
-
     fixer = Fixer(test_file_path)
-    fixer.fix(fixable_vulnerabilities)
+    fixer.fix(vulnerabilities)
 
     fixed_script_path = os.path.join(os.path.dirname(__file__), 'test_variable_expansion_fixed.sh')
     fixed_script_path = Path(fixed_script_path)
