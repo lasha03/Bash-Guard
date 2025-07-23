@@ -17,7 +17,7 @@ def test_recursive_command_injection():
     # 1. eval "$USER_INPUT" - direct eval with user input
     # 2. bash -c "$MALICIOUS" - bash execution with user input
     # 3. Inner command from bash -c parsing
-    assert len(cmd_injection_vulnerabilities) >= 2
+    assert len(cmd_injection_vulnerabilities) == 2
     assert all(v.vulnerability_type == VulnerabilityType.COMMAND_INJECTION for v in cmd_injection_vulnerabilities)
 
 if __name__ == "__main__":

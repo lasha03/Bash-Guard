@@ -58,6 +58,7 @@ def analyze(script_path, output, format, verbose, fix):
         click.echo(f"Starting to fix vulnerabilities")
         click.echo("="*40 + "\n")
         fixable_vulnerabilities = [vuln for vuln in vulnerabilities if vuln.description in [Description.VARIABLE_EXPANSION.value]]
+                                                                                            #Description.UNQUOTED_COMMAND_SUBSTITUTION.value]]
 
         if len(fixable_vulnerabilities): 
             fixer = Fixer(script_path)
