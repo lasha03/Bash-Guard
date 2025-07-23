@@ -39,7 +39,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
         for command in commands:
             vulnerabilities.extend(self._check_command_injection(command))
-            # vulnerabilities.extend(self._check_eval_source(command))
+            vulnerabilities.extend(self._check_eval_source(command))
         # print(vulnerabilities)
         
         vulnerabilities.extend(self._check_array_index_attacks())
@@ -210,35 +210,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         if len(cmd.arguments) < 1:
             return vulnerabilities
 
-        
         command_name = cmd.name.rsplit('.', 1)[-1]
         
-        # For sh -c and bash -c, check the second argument (the command to execute)
-        if command_name in ['sh', 'bash'] and len(cmd.arguments) >= 2 and cmd.arguments[0] == '-c':
-            arg = self.strip_quotes_and_dollar(cmd.arguments[1])
-
-            if self._is_cmd_ctx(cmd, arg):
-                arg = f"{arg}_cmd_ctx_{cmd.line}"
-
-            # For bash/sh -c, only detect as command injection if the ENTIRE argument content is just a user input variable
-            # This avoids conflicts with variable expansion detection for cases like 'echo $FOO'
-            original_arg = cmd.arguments[1].strip('\'"')
-            if arg in self.user_input_vars and original_arg in [f'${arg}', f'${{{arg}}}']:
-                
-                vulnerability = Vulnerability(
-                    vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
-                    severity=SeverityLevel.CRITICAL,
-                    description=Description.EVAL_SOURCE.value,
-                    file_path=self.script_path,
-                    line_number=cmd.line,
-                    column=cmd.column,
-                    line_content=self.lines[cmd.line],
-                    recommendation=Recommendation.EVAL_SOURCE
-                )
-                vulnerabilities.append(vulnerability)
-            return vulnerabilities
-        else:
-            arg = self.strip_quotes_and_dollar(cmd.arguments[0])
+        arg = self.strip_quotes_and_dollar(cmd.arguments[0])
             
         # print(command_name, arg, arg in self.user_input_vars)
         

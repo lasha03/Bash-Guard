@@ -13,6 +13,9 @@ def test_precision_of_parameters():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
+    for v in vulnerabilities:
+        print(v)
+
     fixed_script_path = os.path.join(os.path.dirname(__file__), 'test_precision_of_parameters_fixed.sh')
     fixed_script_path = Path(fixed_script_path)
 
@@ -22,6 +25,10 @@ def test_precision_of_parameters():
 
     analyzer = ScriptAnalyzer(fixed_script_path)
     vulnerabilities = analyzer.analyze()
+
+    print("-------------------fixed-------------------")
+    for v in vulnerabilities:
+        print(v)
     
 
     if any(vuln.vulnerability_type == VulnerabilityType.UNQUOTED_COMMAND_SUBSTITUTION or vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION for vuln in vulnerabilities):

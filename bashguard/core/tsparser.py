@@ -45,8 +45,7 @@ class TSParser:
         Finds all the variables that might be influenced by a user.
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
-        # print(node.type)
-
+        # print('hereeee', base_column, node.type, node.text.decode())
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global
@@ -68,13 +67,18 @@ class TSParser:
             self._save_command(node, all_variables, tainted_variables, parent_function_name, base_line, base_column)
       
             # check if a command is calling some function and if so, jump to the matching node
+            # print("in_command", base_column, node.text.decode())
             for child in node.children:
+                # print("children",child.type, child.text.decode())
                 if child.type == "variable_assignment":
                     # This is an environment variable assignment for this command only
                     # This case is handled below
                     return tainted_variables
                 elif child.type == "command_name":
                     command_name = child.children[0].text.decode()
+                    if command_name in ["bash", "sh"]:
+                        return tainted_variables
+                    
                     if command_name in self.function_definitions:
                         # Jump to parts of the function definition node. 
                         # Directly jumping to function definition node will return, because of check.
@@ -410,16 +414,19 @@ class TSParser:
             - Simple expansion: "$()"
         """
 
+        # print("parse_value_node", value_node.type, value_node.text.decode())
+
         def toname(node: Node, sensitive_parts: list[SensitiveValueUnionType] = [], depth: int = 0) -> list[SensitiveValueUnionType]:
+            # print("toname", node.type, node.text.decode())
             if node.type == "expansion": # parameter expansion
                 value_parameter_expansion = self.parse_parameter_expansion_node(node)
-                value_parameter_expansion.column_frame = (node.start_point[1]+1, node.end_point[1])
+                value_parameter_expansion.column_frame = (node.start_point[1], node.end_point[1])
                 sensitive_parts.append(value_parameter_expansion)
 
             elif node.type == "simple_expansion": # plain variable
                 value_plain_variable = ValuePlainVariable(
                     variable=node.text.decode().strip('$'),
-                    column_frame=(node.start_point[1]+1, node.end_point[1])
+                    column_frame=(node.start_point[1], node.end_point[1])
                 )
                 sensitive_parts.append(value_plain_variable)
 
@@ -468,9 +475,9 @@ class TSParser:
             return arg_node.text.decode()
 
         # Find command name
-        # print(node.type,node.text.decode())
+        # print("save_command", node.type, node.text.decode())
         for i, child in enumerate(node.children):
-            # print(child.type, child.text.decode(), child.start_point[1])
+            # print("_save_command", f"base_column: {base_column}", child.type, child.text.decode(), child.start_point[1])
 
             if child.type == "variable_assignment":
                 var_val = child.text.decode().split('=', maxsplit=1)
@@ -498,7 +505,8 @@ class TSParser:
                     # Direct command name
                     cmd_name = extract_variable_name(child)
             elif child.type in [
-                "word", 
+                "word",
+                "number",
                 "expansion", 
                 "simple_expansion", 
                 "string",
@@ -561,7 +569,8 @@ class TSParser:
         cmd_name = command.name
         
         # Commands that execute other bash code
-        recursive_commands = {'bash', 'sh', 'eval', 'source', '.'}
+        recursive_commands = {'bash', 'sh'}
+        # print("parse_recursive_commands", cmd_name)
         
         if cmd_name not in recursive_commands:
             return
@@ -639,6 +648,7 @@ class TSParser:
                 line=base_line,
                 column=match.start(),
             )
+            # print('_find_simple_variables_in_string', var_expansion)
             self.used_variables.append(var_expansion)
 
     def _save_subscript(self, node: Node, base_line: int, base_column: int) -> None:

@@ -14,3 +14,8 @@ cp /flag $WORKDIR
 read -r INPUT
 [ "${#INPUT}" -gt 5 ] && exit 2
 sh -c "$INPUT" < /dev/null
+
+
+eval `echo args$i`=`cygpath --path --ignore --mixed "$arg"`
+
+i=`expr $i + 1`
