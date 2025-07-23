@@ -2,13 +2,18 @@ import re
 
 from bashguard.core.base_fixer import BaseFixer
 from bashguard.core import Vulnerability
+from bashguard.analyzers.variable_expansion import VariableExpansionAnalyzer
 
 class VariableExpansionFixer(BaseFixer):
     def __init__(self):
         self.num_chars_to_add = 2
 
     def fix(self, vulnerability: Vulnerability, line_content: str, original_line_content: str, base_column: int) -> tuple[str, int]:
+        # check if already quoted
         column = base_column + vulnerability.column - 1
+        if VariableExpansionAnalyzer.check_quotes(line_content, '"', column, column + 1):
+            return line_content, 0
+
 
         # expand tabs to spaces
         line_content = line_content

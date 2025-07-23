@@ -6,14 +6,17 @@ from bashguard.analyzers import ScriptAnalyzer
 from bashguard.fixers.fixer import Fixer
 from bashguard.core.vulnerability import Description
 
-def test_gradlew():
-    test_file_path = os.path.join(os.path.dirname(__file__), 'test_gradlew.sh')
+def test_the_dreadful_discovery():
+    test_file_path = os.path.join(os.path.dirname(__file__), 'test_the_dreadful_discovery.sh')
     test_file_path = Path(test_file_path)
 
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
-    fixed_script_path = os.path.join(os.path.dirname(__file__), 'test_gradlew_fixed.sh')
+    for v in vulnerabilities:
+        print(v)
+
+    fixed_script_path = os.path.join(os.path.dirname(__file__), 'test_the_dreadful_discovery_fixed.sh')
     fixed_script_path = Path(fixed_script_path)
 
     fixer = Fixer(test_file_path, output_path=fixed_script_path)
@@ -27,10 +30,8 @@ def test_gradlew():
     for v in vulnerabilities:
         print(v)
     
-    print(vulnerabilities)
-    
     assert not any(vuln.vulnerability_type == VulnerabilityType.UNQUOTED_COMMAND_SUBSTITUTION for vuln in vulnerabilities)
     assert not any(vuln.vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION for vuln in vulnerabilities)
 
 if __name__ == "__main__":
-    test_gradlew()
+    test_the_dreadful_discovery()

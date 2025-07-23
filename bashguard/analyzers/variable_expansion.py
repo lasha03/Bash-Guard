@@ -214,25 +214,30 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
         start = var.column
         end = start + len(var_name)
 
-        # Look for the nearest opening quote before the variable
+        return self.check_quotes(line, quote, start, end)
+
+    @staticmethod
+    def check_quotes(line: str, quote: str, start: int, end: int) -> bool:
+        """Check if a position in the line is properly quoted."""
+
         opening_quote_pos = -1
         for i in range(start - 1, -1, -1):
             if line[i] == quote:
                 opening_quote_pos = i
                 break
-            elif line[i] == quote and quote == '"':  # Handle escaped quotes
-                continue
         
+        # Handle special case where $() is used in a quoted context
+        if quote == '"' and line[opening_quote_pos+1:opening_quote_pos+3] == "$(":
+            return False
+
         # Look for the nearest closing quote after the variable
         closing_quote_pos = -1
         for i in range(end, len(line)):
             if line[i] == quote:
                 closing_quote_pos = i
                 break
-            elif line[i] == quote and quote == '"':  # Handle escaped quotes
-                continue
 
-        # Check if both quotes are found and the variable is between them
+         # Check if both quotes are found and the variable is between them
         if opening_quote_pos != -1 and closing_quote_pos != -1:
             return True
         
