@@ -11,6 +11,9 @@ def test_variable_assginemnt_in_command_context_vuln():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
     
+    for v in vulnerabilities:
+        print(v)
+
     assert(len(vulnerabilities) == 2)
     assert(vulnerabilities[0].vulnerability_type == VulnerabilityType.VARIABLE_EXPANSION)
     assert(vulnerabilities[1].vulnerability_type == VulnerabilityType.COMMAND_INJECTION)

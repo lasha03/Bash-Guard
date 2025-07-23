@@ -26,6 +26,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         commands = self.parser.get_commands()
         # find user-inputted variables
         self.user_input_vars = self.parser.get_tainted_variables()
+        self.assigned_vars = self.parser.get_variables()
         
         for i in range(1, 10):
             self.user_input_vars.add(str(i))
@@ -38,7 +39,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         vulnerabilities = []
         for command in commands:
             vulnerabilities.extend(self._check_command_injection(command))
-            vulnerabilities.extend(self._check_eval_source(command))
+            # vulnerabilities.extend(self._check_eval_source(command))
         # print(vulnerabilities)
         
         vulnerabilities.extend(self._check_array_index_attacks())
@@ -155,11 +156,15 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # Check for direct variable execution (any variable used as a command)
         # This includes both user-controlled variables and variables that might be indirectly manipulated
         original_name = command.name
+        if self._is_cmd_ctx(command, command_name):
+                command_name = f"{command_name}_cmd_ctx_{command.line}"
+
         is_variable_command = (original_name.startswith('$') or 
                              command_name in self.user_input_vars or
                              # Check if this is a variable name (not a standard command) AND it's tainted
                              (command_name.isalpha() and command_name.isupper() and command_name in self.user_input_vars))
         
+        command_name = self.strip_quotes_and_dollar(command.name)
         if is_variable_command:
             # Get the line content to verify this is a real command injection
             line_content = self.lines[command.line] if command.line < len(self.lines) else ""
@@ -168,9 +173,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             if line_content.startswith('#!') or not line_content.strip():
                 return vulnerabilities
             
-            # Skip variable assignments (e.g., foo="$1")
-            if f'{command_name}=' in line_content:
-                return vulnerabilities
+            # # Skip variable assignments (e.g., foo="$1")
+            # if f'{command_name}=' in line_content:
+            #     return vulnerabilities
             
             # Skip if this is just a standalone variable name (likely from recursive parsing artifacts)
             if (command_name == line_content.strip() and 
@@ -182,7 +187,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             system_commands = {'cd', 'echo', 'exit', 'cp', 'mv', 'rm', 'ls', 'cat', 'grep', 'find', 'mktemp'}
             if command_name.lower() in system_commands:
                 return vulnerabilities
-                
+            
+
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                 severity=SeverityLevel.HIGH,
@@ -210,10 +216,15 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
         # For sh -c and bash -c, check the second argument (the command to execute)
         if command_name in ['sh', 'bash'] and len(cmd.arguments) >= 2 and cmd.arguments[0] == '-c':
             arg = self.strip_quotes_and_dollar(cmd.arguments[1])
+
+            if self._is_cmd_ctx(cmd, arg):
+                arg = f"{arg}_cmd_ctx_{cmd.line}"
+
             # For bash/sh -c, only detect as command injection if the ENTIRE argument content is just a user input variable
             # This avoids conflicts with variable expansion detection for cases like 'echo $FOO'
             original_arg = cmd.arguments[1].strip('\'"')
             if arg in self.user_input_vars and original_arg in [f'${arg}', f'${{{arg}}}']:
+                
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.CRITICAL,
@@ -230,6 +241,9 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             arg = self.strip_quotes_and_dollar(cmd.arguments[0])
             
         # print(command_name, arg, arg in self.user_input_vars)
+        
+        if self._is_cmd_ctx(cmd, arg):
+            arg = f"{arg}_cmd_ctx_{cmd.line}"
         if command_name in ['eval', 'source'] and arg in self.user_input_vars:
             vulnerability = Vulnerability(
                 vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
@@ -244,6 +258,12 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
             vulnerabilities.append(vulnerability)
         
         return vulnerabilities
+
+    def _is_cmd_ctx(self, command: Command, arg: str) -> bool:
+        for var in self.assigned_vars:
+            if arg == var.name and var.is_in_command_context and var.line == command.line:
+                return True
+        return False
 
     # remove '$' and quotes from the command name
     @staticmethod

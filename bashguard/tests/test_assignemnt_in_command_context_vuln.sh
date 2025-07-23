@@ -2,7 +2,7 @@
 
 PATH=/usr/bin
 
-FOO="$1"
-FOO=hello bash -c 'echo $FOO'
+FOO=hello
+FOO="$1" bash -c '$FOO' # command injection
 
-$FOO
+FOO=$1 bash -c 'echo $FOO' # variable expansion

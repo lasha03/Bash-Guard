@@ -2,7 +2,11 @@
 
 PATH=/usr/bin
 
-FOO="hello"
-FOO="$1" bash -c 'echo "$FOO"'
+FOO="$1"
+FOO="hello" bash -c '$FOO' # safe
 
-$FOO
+BAR="hello"
+BAR="$1" bash -c 'echo "$BAR"'
+$BAR # safe
+
+BAR="$1" bash -c "echo $BAR" # safe
