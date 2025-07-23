@@ -28,7 +28,7 @@ def cli():
 @click.option("--format", "-f", type=click.Choice(["text", "json", "html"]), default="text", help="Output format")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--fix", is_flag=True, help="Automatically fix issues in the script")
-@click.option("--fix-output", type=click.Path(), help="Output file for the fixed script")
+@click.option("--fix-output", type=click.Path(), help="Output file for the fixed script. If not specified, the script will be overwritten.")
 def analyze(script_path, output, format, verbose, fix, fix_output):
     """Analyze a Bash script for security vulnerabilities."""
     script_path = Path(script_path)

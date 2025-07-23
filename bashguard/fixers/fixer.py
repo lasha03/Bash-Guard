@@ -22,7 +22,7 @@ class Fixer:
         if output_path:
             self.output_path = output_path
         else:
-            self.output_path = f"{script_path.parent}/{script_path.stem}_fixed.sh"
+            self.output_path = self.script_path
 
         with open(script_path, "r") as f:
             self.content = f.readlines()
@@ -78,9 +78,6 @@ class Fixer:
 
 
         fixed_code = "".join(self.content)
-        # fixed_code = ""
-        # for line in self.content:
-        #     fixed_code += line
         
         with open(self.output_path, "w") as f:
             f.write(fixed_code)

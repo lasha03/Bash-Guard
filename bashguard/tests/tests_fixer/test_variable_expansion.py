@@ -13,11 +13,11 @@ def test_variable_expansion():
     analyzer = ScriptAnalyzer(test_file_path)
     vulnerabilities = analyzer.analyze()
 
-    fixer = Fixer(test_file_path)
-    fixer.fix(vulnerabilities)
-
     fixed_script_path = os.path.join(os.path.dirname(__file__), 'test_variable_expansion_fixed.sh')
     fixed_script_path = Path(fixed_script_path)
+    
+    fixer = Fixer(test_file_path, output_path=fixed_script_path)
+    fixer.fix(vulnerabilities)
 
     analyzer = ScriptAnalyzer(fixed_script_path)
     vulnerabilities = analyzer.analyze()
