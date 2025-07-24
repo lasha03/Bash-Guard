@@ -26,6 +26,7 @@ class Fixer:
 
         with open(script_path, "r") as f:
             self.content = f.readlines()
+            self.content = [line.expandtabs(8) for line in self.content]
 
         self.init_fixers()
 
