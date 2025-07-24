@@ -43,7 +43,7 @@ find "$DEST" -type f | while read -r file; do
   fi
 done > "$bash_scripts"
 
-grep -Ei 'shellshock|cve|malware|virus|poc|dropper' < "$bash_scripts" > vulnerable.list
+grep -Ei 'shellshock|cve|malware|virus|poc|dropper|pwned|cheat|malbash' < "$bash_scripts" > vulnerable.list
 
 grep -vFf vulnerable.list "$bash_scripts" > secure.list
 
