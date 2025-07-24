@@ -8,4 +8,9 @@ setup(
         "tree-sitter-bash",
     ],
     python_requires=">=3.8",
+    entry_points={
+        'console_scripts': [
+            'bashguard = bashguard.__main__:cli',
+        ],
+    },
 ) 
