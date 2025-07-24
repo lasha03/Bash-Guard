@@ -45,7 +45,8 @@ class TSParser:
         Finds all the variables that might be influenced by a user.
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
-        # print('hereeee', base_column, node.type, node.text.decode())
+        # if node.type not in ["program", "comment", "function_definition"]:
+        #     print('hereeee', base_column, node.type, node.text.decode())
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global
