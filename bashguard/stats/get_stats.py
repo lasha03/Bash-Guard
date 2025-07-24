@@ -19,7 +19,6 @@ class Stats:
         if key not in self.stats:
             self.stats[key] = []
         self.stats[key].extend(value)
-        self.stats['total'].extend(value)
 
     def get_stats(self):
         return self.stats
@@ -40,31 +39,31 @@ class Report:
 
     def generate_report(self):
         for script in self.scripts:
-            print(script.name)
-            print("before fixing:")
-            if script.vulnerabilities_before_fixing is None:
-                print("Failed to analyze before fixing")
+            if script is None:
                 continue
+            # print(script.name)
+            # print("before fixing:")
+
             stats = script.vulnerabilities_before_fixing.get_stats()
             for k, v in stats.items():
                 self.total_before_fixing.record(k, v)
-                print(f"{k}: {len(v)}")
-            print('--------------------------------')
-            print("after fixing:")
-            if script.vulnerabilities_after_fixing is None:
-                print("Failed to analyze after fixing")
-                continue
+                # print(f"{k}: {len(v)}")
+            # print('--------------------------------')
+            # print("after fixing:")
             stats = script.vulnerabilities_after_fixing.get_stats()
             for k, v in stats.items():
                 self.total_after_fixing.record(k, v)
-                print(f"{k}: {len(v)}")
-            print('--------------------------------')
+                # print(f"{k}: {len(v)}")
+            # print('--------------------------------')
 
     def get_total_before_fixing(self):
         return self.total_before_fixing
     
     def get_total_after_fixing(self):
         return self.total_after_fixing
+
+failed_to_analyze = 0
+failed_to_fix = 0
 
 def analyze_script(script_path):
     try:
@@ -74,26 +73,44 @@ def analyze_script(script_path):
         stats.record_stats(vulnerabilities)
         return stats, vulnerabilities
     except Exception as e:
-        print(e)
-        print(f"Failed to analyze {script_path}")
+        global failed_to_analyze
+        failed_to_analyze += 1
+        # print(e)
+        # print(f"Failed to analyze {script_path}")
         return None, None
 
 
 def fix_script(script_path, vulnerabilities):
     try:
-        fixed_script_path = script_path.replace(".sh", "_fixed.sh")
+        if script_path.endswith(".sh"):
+            fixed_script_path = script_path.replace(".sh", "_fixed.sh")
+        else:
+            fixed_script_path = script_path + "_fixed.sh"
+        
         fixer = Fixer(script_path, output_path=fixed_script_path)
         fixer.fix(vulnerabilities)
+        return fixed_script_path
     except Exception as e:
-        print(e)
-        print(f"Failed to fix {script_path}")
-    return fixed_script_path
+        global failed_to_fix
+        failed_to_fix += 1
+        return None
+        # print(e)
+        # print(f"Failed to fix {script_path}")
 
 
 def record_script_analysis(script_path):
     vulnerabilities_stats, vulnerabilities = analyze_script(script_path)
+    if vulnerabilities_stats is None or vulnerabilities is None:
+        return None
+
     fixed_script_path = fix_script(script_path, vulnerabilities)
+    if fixed_script_path is None:
+        return None
+    
     vulnerabilities_fixed_stats, _ = analyze_script(fixed_script_path)
+    if vulnerabilities_fixed_stats is None:
+        return None
+    
     return ScriptAnalysisResult(script_path, vulnerabilities_stats, vulnerabilities_fixed_stats)
 
 with open("/home/lasha/bashguard/bash_test_dataset/secure.list", "r") as f:
@@ -111,31 +128,38 @@ for secure_script in secure_list:
 for vulnerable_script in vulnerable_list:
     vulnerable_scripts.append(record_script_analysis(vulnerable_script.strip()))
 
-print("secure scripts:")
+# print("secure scripts:")
 secure_report = Report(secure_scripts)
 secure_report.generate_report()
 
-print("vulnerable scripts:")
+# print("vulnerable scripts:")
 vulnerable_report = Report(vulnerable_scripts)
 vulnerable_report.generate_report()
 
 
-print("total before fixing secure scripts:")
+
+print(f"TOTAL SECURE SCRIPTS: {len(secure_list)}")
+print(f"TOTAL VULNERABLE SCRIPTS: {len(vulnerable_list)}")
+print("--------------------------------")
+print("TOTAL BEFORE FIXING SECURE SCRIPTS")
 secure_before_stats = secure_report.get_total_before_fixing().get_stats()
 for k, v in secure_before_stats.items():
     print(f"{k}: {len(v)}")
 
-print("total after fixing secure scripts:")
+print("\n\nTOTAL AFTER FIXING SECURE SCRIPTS")
 secure_after_stats = secure_report.get_total_after_fixing().get_stats()
 for k, v in secure_after_stats.items():
     print(f"{k}: {len(v)}")
 
-print("total before fixing vulnerable scripts:")
+print("\n\n\nTOTAL BEFORE FIXING VULNERABLE SCRIPTS")
 vulnerable_before_stats = vulnerable_report.get_total_before_fixing().get_stats()
 for k, v in vulnerable_before_stats.items():
     print(f"{k}: {len(v)}")
 
-print("total after fixing vulnerable scripts:")
+print("\n\nTOTAL AFTER FIXING VULNERABLE SCRIPTS")
 vulnerable_after_stats = vulnerable_report.get_total_after_fixing().get_stats()
 for k, v in vulnerable_after_stats.items():
     print(f"{k}: {len(v)}")
+
+print("\n\nFAILED TO ANALYZE: ", failed_to_analyze)
+print("FAILED TO FIX: ", failed_to_fix)
