@@ -46,7 +46,7 @@ class TSParser:
         If a variable "var" is defined inside a function "f" then its name if "f.var". 
         """
         # if node.type not in ["program", "comment", "function_definition"]:
-        #     print('hereeee', base_column, node.type, node.text.decode())
+        # print('hereeee', base_column, node.type, node.text.decode())
         if node.type == "function_definition":
             # Note: in bash if a function is defined twice the first one is discarded
             # Note: function definitions are global
@@ -59,7 +59,7 @@ class TSParser:
             assert function_name != ""
 
             # add function_name and matching node to dict
-            self.function_definitions[function_name] = node
+            self.function_definitions[function_name] = [node, False]
             return tainted_variables
         
         # save command with its argument. If command is read save the corresopondig argument 
@@ -81,9 +81,15 @@ class TSParser:
                         return tainted_variables
                     
                     if command_name in self.function_definitions:
+                        if self.function_definitions[command_name][1]:
+                            # This function is already processed, so we can jump to the next command
+                            return tainted_variables
+
+                        self.function_definitions[command_name][1] = True
+                        # print(self.function_definitions[command_name][0].text.decode())
                         # Jump to parts of the function definition node. 
                         # Directly jumping to function definition node will return, because of check.
-                        for part in self.function_definitions[command_name].children:
+                        for part in self.function_definitions[command_name][0].children:
                             self._find_tainted_variables(part, tainted_variables, command_name, all_variables, base_line, base_column)
                     else:
                         self._find_tainted_variables(child, tainted_variables, parent_function_name, all_variables, base_line, base_column)
@@ -418,7 +424,7 @@ class TSParser:
         # print("parse_value_node", value_node.type, value_node.text.decode())
 
         def toname(node: Node, sensitive_parts: list[SensitiveValueUnionType] = [], depth: int = 0) -> list[SensitiveValueUnionType]:
-            # print("toname", node.type, node.text.decode())
+            # print("toname", node.type, node.text.decode(), node.start_point[1], node.end_point[1])
             if node.type == "expansion": # parameter expansion
                 value_parameter_expansion = self.parse_parameter_expansion_node(node)
                 value_parameter_expansion.column_frame = (node.start_point[1], node.end_point[1])
@@ -712,10 +718,11 @@ class TSParser:
         Handles variable expansions like $var, ${var}, etc.
         """
         par = node.text.decode()
+        # print(node.type, par, base_line, base_column, node.start_point[0], node.start_point[1])
         self.used_variables.append(
             UsedVariable(
-                name=par, 
-                line=base_line+node.start_point[0], 
+                name=par,
+                line=base_line+node.start_point[0],
                 column=base_column+node.start_point[1],
             )
         )
