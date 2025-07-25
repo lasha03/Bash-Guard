@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -e
+
+if test $# -ne 2; then
+	echo "Usage: $0 target/debug/shellharden moduletests/"
+	exit 1
+fi
+exe="$1"
+dir="$2"
+
+compare(){
+	local original=$1
+	local expected=$2
+	if diff=$(diff -u -- "$expected" <("$exe" --transform -- "$original" 2>&1)); then
+		return 0
+	fi
+	printf '\n——— \e[1m%s\e[m ———\n%s\n' "$original" "$diff"
+	return 1
+}
+
+check(){
+	local file=$1
+	local expect_status=$2
+	status=0
+	if output=$("$exe" --check "$file"); then
+		true
+	else
+		status=$?
+	fi
+	if test "$status" -ne "$expect_status"; then
+		output+="Expecting --check to return $expect_status, got $status"
+	fi
+	if test "$output" = ""; then
+		return 0
+	fi
+	printf '\n——— --check \e[1m%s\e[m ———\n%s\n' "$file" "$output"
+	return 1
+}
+
+pass=()
+fail=()
+
+for i in "${dir%/}"/original/*; do
+	if compare "$i" "${i%/original/*}/expected/${i##*/}" && check "$i" 2; then
+		pass+=("$i")
+	else
+		fail+=("$i")
+	fi
+done
+
+for i in "${dir%/}"/expected/* "$0"; do
+	case ${i##*/} in
+		error_*|unsupp_*)
+			continue
+		;;
+	esac
+	if compare "$i" "$i" && check "$i" 0; then
+		pass+=("$i")
+	else
+		fail+=("$i")
+	fi
+done
+
+echo
+echo Passes:
+printf '\t\e[32m%s\e[m\n' "${pass[@]}"
+
+echo
+echo Fails:
+printf '\t\e[31m%s\e[m\n' "${fail[@]}"
+
+exit ${#fail[@]}

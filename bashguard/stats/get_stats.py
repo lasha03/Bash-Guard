@@ -113,14 +113,23 @@ def record_script_analysis(script_path):
     
     return ScriptAnalysisResult(script_path, vulnerabilities_stats, vulnerabilities_fixed_stats)
 
-with open("/home/lasha/bashguard/bash_test_dataset/secure.list", "r") as f:
-    secure_list = f.readlines()
+secure_dir = "./scripts/secure_scripts"
+vuln_dir = "./scripts/vuln_scripts"
 
-with open("/home/lasha/bashguard/bash_test_dataset/vulnerable.list", "r") as f:
-    vulnerable_list = f.readlines()
+secure_list = []
+for root, dirs, files in os.walk(secure_dir):
+    for fname in files:
+        secure_list.append(os.path.join(root, fname))
+
+vulnerable_list = []
+for root, dirs, files in os.walk(vuln_dir):
+    for fname in files:
+        vulnerable_list.append(os.path.join(root, fname))
 
 secure_scripts = []
 vulnerable_scripts = []
+
+
 
 for secure_script in secure_list:
     secure_scripts.append(record_script_analysis(secure_script.strip()))
