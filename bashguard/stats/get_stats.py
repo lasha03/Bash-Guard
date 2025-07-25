@@ -119,12 +119,14 @@ vuln_dir = "./scripts/vuln_scripts"
 secure_list = []
 for root, dirs, files in os.walk(secure_dir):
     for fname in files:
-        secure_list.append(os.path.join(root, fname))
+        if "fixed" not in fname:
+            secure_list.append(os.path.join(root, fname))
 
 vulnerable_list = []
 for root, dirs, files in os.walk(vuln_dir):
     for fname in files:
-        vulnerable_list.append(os.path.join(root, fname))
+        if "fixed" not in fname:
+            vulnerable_list.append(os.path.join(root, fname))
 
 secure_scripts = []
 vulnerable_scripts = []
