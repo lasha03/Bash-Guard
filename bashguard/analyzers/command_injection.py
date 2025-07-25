@@ -1,10 +1,18 @@
-import re
 import subprocess
+
 from pathlib import Path
 from typing import List, Set
-from bashguard.core.vulnerability import Recommendation
-from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import Command, InjectableVariable, DeclaredPair
+
+from bashguard.core import (
+    BaseAnalyzer, 
+    TSParser, 
+    Vulnerability, 
+    VulnerabilityType, 
+    SeverityLevel, 
+    Description, 
+    Recommendation, 
+    Command
+)
 
 class CommandInjectionAnalyzer(BaseAnalyzer):
     """

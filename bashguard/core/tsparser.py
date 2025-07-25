@@ -1,12 +1,25 @@
 """
-Parser for content analysis, based on bashlex parser.
+Parser for content analysis, based on tree-sitter parser.
 """
 
 import tree_sitter_bash as tsbash
 from tree_sitter import Language, Parser, Node
 
-from bashguard.core.types import AssignedVariable, UsedVariable, InjectableVariable, Command, Subscript, Value, ValueParameterExpansion, ValuePlainVariable, SensitiveValueUnionType, ValueUserInput, ValueCommandSubtitution, DeclaredPair
-from bashguard.core.logger import Logger
+from bashguard.core import (
+    AssignedVariable, 
+    UsedVariable, 
+    InjectableVariable, 
+    Command, 
+    Subscript, 
+    Value,
+    ValueParameterExpansion,
+    ValuePlainVariable,
+    SensitiveValueUnionType,
+    ValueUserInput,
+    ValueCommandSubtitution,
+    DeclaredPair,
+    Logger
+)
 
 
 class TSParser:

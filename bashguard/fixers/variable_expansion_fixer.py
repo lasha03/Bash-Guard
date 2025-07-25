@@ -1,8 +1,7 @@
 import re
 
-from bashguard.core.base_fixer import BaseFixer
-from bashguard.core import Vulnerability
-from bashguard.analyzers.variable_expansion import VariableExpansionAnalyzer
+from bashguard.core import BaseFixer, Vulnerability
+from bashguard.analyzers import VariableExpansionAnalyzer
 
 class VariableExpansionFixer(BaseFixer):
     def __init__(self):

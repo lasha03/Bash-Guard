@@ -1,6 +1,4 @@
-import re
-from bashguard.core.base_fixer import BaseFixer
-from bashguard.core import Vulnerability
+from bashguard.core import BaseFixer, Vulnerability
 
 class CommandSubstitutionFixer(BaseFixer):
     def fix(self, vulnerability: Vulnerability, line_content: str, original_line_content: str, base_column: int) -> tuple[str, int]:

@@ -3,11 +3,17 @@ Analyzer for variable expansion vulnerabilities.
 """
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
-from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
-from bashguard.core.logger import Logger
-from bashguard.core.types import Command
+from bashguard.core import (
+    BaseAnalyzer, 
+    Vulnerability, 
+    VulnerabilityType, 
+    SeverityLevel, 
+    Description, 
+    TSParser,
+    Command
+)
 
 class ParameterExpansionAnalyzer(BaseAnalyzer):
     """

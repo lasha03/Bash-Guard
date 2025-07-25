@@ -1,8 +1,7 @@
-from bashguard.core.vulnerability import Vulnerability
 from collections import defaultdict
-from bashguard.fixers.variable_expansion_fixer import VariableExpansionFixer
-from bashguard.core.vulnerability import Description
-from bashguard.fixers.command_substitution_fixer import CommandSubstitutionFixer
+
+from bashguard.core import Vulnerability, Description, BaseFixer
+from bashguard.fixers import VariableExpansionFixer, CommandSubstitutionFixer
 
 class Fixer:
     """

@@ -1,11 +1,21 @@
 """
 Analyzer for variable expansion vulnerabilities.
 """
+
 from pathlib import Path
 from typing import List
-from bashguard.core.vulnerability import Recommendation
-from bashguard.core import BaseAnalyzer, TSParser, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.types import UsedVariable, AssignedVariable
+
+from bashguard.core import (
+    BaseAnalyzer, 
+    TSParser, 
+    Vulnerability, 
+    VulnerabilityType, 
+    SeverityLevel, 
+    Description,
+    Recommendation,
+    UsedVariable,
+    AssignedVariable
+)
 
 class VariableExpansionAnalyzer(BaseAnalyzer):
     """

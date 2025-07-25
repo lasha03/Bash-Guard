@@ -5,8 +5,15 @@ Analyzer for path related vulnerabilities.
 from pathlib import Path
 from typing import List
 
-from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description, TSParser
-from bashguard.core.types import AssignedVariable
+from bashguard.core import (
+    BaseAnalyzer, 
+    Vulnerability, 
+    VulnerabilityType, 
+    SeverityLevel, 
+    Description, 
+    TSParser, 
+    AssignedVariable
+)
 
 class EnvironmentAnalyzer(BaseAnalyzer):
     """

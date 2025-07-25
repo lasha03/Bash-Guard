@@ -4,11 +4,10 @@ Reporter utilities for generating vulnerability reports.
 
 import json
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List
 from colorama import Fore, Style, init
-from bashguard.core.logger import Logger
 
-from bashguard.core.vulnerability import Vulnerability, SeverityLevel
+from bashguard.core import Vulnerability, SeverityLevel
 
 # Initialize colorama
 init()

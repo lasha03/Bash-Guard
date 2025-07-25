@@ -1,10 +1,14 @@
+import subprocess
 
 from pathlib import Path
-
-
-import subprocess
-from bashguard.core import BaseAnalyzer, Vulnerability, VulnerabilityType, SeverityLevel, Description
-from bashguard.core.vulnerability import Recommendation
+from bashguard.core import (
+    BaseAnalyzer, 
+    Vulnerability, 
+    VulnerabilityType, 
+    SeverityLevel, 
+    Description, 
+    Recommendation
+)
 
 class ShellcheckAnalyzer(BaseAnalyzer):
     """

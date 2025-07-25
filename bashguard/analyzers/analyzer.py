@@ -5,10 +5,8 @@ Core analyzer module that orchestrates the analysis process.
 from pathlib import Path
 from typing import List
 
-from bashguard.analyzers import VariableExpansionAnalyzer, ParameterExpansionAnalyzer, CommandInjectionAnalyzer, EnvironmentAnalyzer
-from bashguard.analyzers.shellcheck_analyzer import ShellcheckAnalyzer
-from bashguard.core import Vulnerability, BaseAnalyzer, TSParser, VulnerabilityType
-from bashguard.core.logger import Logger
+from bashguard.core import Vulnerability, BaseAnalyzer, TSParser, VulnerabilityType, Logger
+from bashguard.analyzers import VariableExpansionAnalyzer, ParameterExpansionAnalyzer, CommandInjectionAnalyzer, EnvironmentAnalyzer, ShellcheckAnalyzer
 
 class ScriptAnalyzer:
     """
