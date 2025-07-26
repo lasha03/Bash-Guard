@@ -12,9 +12,9 @@ trap '[[ $BASH_SUBSHELL -gt 0 ]] && exit' DEBUG
 
 if (( RESPONSE == CHALLENGE && "$1" == CHALLENGE || 1 == 2))
 then
-	echo "Success!"
-	#cat /flag
+        echo "Success!"
+        #cat /flag
 else
-	echo "Wrong!"
-	#cat /flag | md5sum
+        echo "Wrong!"
+        #cat /flag | md5sum
 fi

@@ -17,7 +17,7 @@ class BaseAnalyzer(ABC):
     specific types of vulnerabilities in Bash scripts.
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser):
+    def __init__(self, script_path: Path | None, content: str, parser: TSParser):
         """
         Initialize the analyzer.
         

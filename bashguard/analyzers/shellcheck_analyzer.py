@@ -15,7 +15,7 @@ class ShellcheckAnalyzer(BaseAnalyzer):
     Analyze script using "shellcheck" for syntax errors.
     """
     
-    def __init__(self, script_path: Path, content: str):
+    def __init__(self, script_path: Path | None, content: str):
         """
         Args:
             script_path: Path to the script being analyzed
@@ -32,10 +32,14 @@ class ShellcheckAnalyzer(BaseAnalyzer):
             Ignore all the warnings.
         """
 
-        result = subprocess.run(["shellcheck", self.script_path], capture_output=True)
+        if self.script_path:
+            result = subprocess.run(["shellcheck", self.script_path], capture_output=True)
+        else:
+            result = subprocess.run(["shellcheck", "-"], input=self.content.encode(), capture_output=True)
+
         text = result.stdout.decode()
 
-        pattern = f"In {self.script_path}"
+        pattern = f"In {self.script_path if self.script_path else '-'}"
 
         
         parts = []

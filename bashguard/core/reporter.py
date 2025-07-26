@@ -19,7 +19,7 @@ class Reporter:
     Uses Factory pattern to create different report formats.
     """
     
-    def __init__(self, file_path: Path, format: str = "text"):
+    def __init__(self, file_path: Path | None = None, format: str = "text"):
         """
         Initialize the reporter.
         
@@ -53,7 +53,7 @@ class Reporter:
         if not vulnerabilities:
             return "No vulnerabilities found."
         
-        report = ["BashGuard Security Analysis Report", "=" * 40, "", f'File: {self.file_path}', ""]
+        report = ["BashGuard Security Analysis Report", "=" * 40, "", f'File: {self.file_path if self.file_path else "stdin"}', ""]
         report.append(f"Total vulnerabilities found: {len(vulnerabilities)}")
         
         # Group by severity
@@ -146,7 +146,7 @@ class Reporter:
                 "severity": vuln.severity.name,
                 "description": vuln.description,
                 "location": {
-                    "file": str(vuln.file_path),
+                    "file": str(vuln.file_path) if vuln.file_path else 'stdin',
                     "line": vuln.line_number,
                 }
             }
@@ -215,7 +215,7 @@ class Reporter:
             html_parts.extend([
                 f"    <div class='vulnerability {severity_class}'>",
                 f"        <h3>{i}. {vuln.vulnerability_type.name} ({vuln.severity.name})</h3>",
-                f"        <p><strong>File:</strong> {vuln.file_path}</p>",
+                f"        <p><strong>File:</strong> {vuln.file_path if vuln.file_path else 'stdin'}</p>",
                 f"        <p><strong>Line:</strong> {vuln.line_number}" + (f", <strong>Column:</strong> {vuln.column}" if vuln.column else "") + "</p>",
                 f"        <p><strong>Description:</strong> {vuln.description}</p>"
             ])

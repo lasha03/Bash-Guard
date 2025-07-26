@@ -20,7 +20,7 @@ class EnvironmentAnalyzer(BaseAnalyzer):
     Analyzer that detects if PATH variable is missing in a shell script.
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser):
+    def __init__(self, script_path: Path | None, content: str, parser: TSParser):
         """
         Initialize the PATH related analyzer.
         

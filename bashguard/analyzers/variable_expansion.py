@@ -29,7 +29,7 @@ class VariableExpansionAnalyzer(BaseAnalyzer):
     - Missing default values for parameter expansions
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser):
+    def __init__(self, script_path: Path | None, content: str, parser: TSParser):
         """
         Initialize the variable expansion analyzer.
         

@@ -13,15 +13,20 @@ class ScriptAnalyzer:
     Main analyzer class that coordinates the analysis process.
     """
     
-    def __init__(self, script_path: Path):
+    def __init__(self, script_path: Path | None = None, script: bytes | None = None):
         """
         Initialize the script analyzer.
         
         Args:
             script_path: Path to the script to analyze
         """
-        self.script_path = script_path
-        self.content = self._read_script().expandtabs(8)
+        if script_path:
+            self.script_path = script_path
+            self.content = self._read_script().expandtabs(8)
+        elif script:
+            self.content = script.expandtabs(8)
+        else:
+            raise ValueError("Either script_path or script_as_bytes must be provided")
 
         parser = TSParser(bytes(self.content, 'utf-8'))
         self._init_analyzers(parser)

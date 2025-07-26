@@ -23,7 +23,7 @@ class ParameterExpansionAnalyzer(BaseAnalyzer):
     - Expanding 0-th parameter
     """
     
-    def __init__(self, script_path: Path, content: str, parser: TSParser):
+    def __init__(self, script_path: Path | None, content: str, parser: TSParser):
         """
         Initialize the parameter expansion analyzer.
         

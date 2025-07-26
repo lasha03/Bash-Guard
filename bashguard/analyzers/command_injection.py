@@ -24,7 +24,7 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
     - Direct command execution with user input
     """
 
-    def __init__(self, script_path: Path, content: str, parser: TSParser):
+    def __init__(self, script_path: Path | None, content: str, parser: TSParser):
         super().__init__(script_path, content, parser)
         self.user_input_vars: Set[str] = set()  # Set of variables that come from user input
 
