@@ -244,10 +244,6 @@ class TSParser:
 
             self._check_tainted(variable_name, variable_value, tainted_variables)
 
-        # TODO
-        # am testebze mushaobs mara aseti casebi echo $(array4[index]), echo $array5[index]
-        # ar ihendleba
-        #(aset casebs shellchecki ichers turme)
         elif node.type == "subscript":
             self._save_subscript(node, base_line, base_column)
 
