@@ -25,7 +25,7 @@ def cli():
 @cli.command()
 @click.argument("script_path", type=click.Path(exists=True, dir_okay=False))
 @click.option("--output", "-o", type=click.Path(), help="Output file for the report")
-@click.option("--format", "-f", type=click.Choice(["text", "json", "html"]), default="text", help="Output format")
+@click.option("--format", "-f", type=click.Choice(["text", "json"]), default="text", help="Output format")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--fix", is_flag=True, help="Automatically fix issues in the script")
 @click.option("--fix-output", type=click.Path(), help="Output file for the fixed script. If not specified, the script will be overwritten.")
