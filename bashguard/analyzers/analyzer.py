@@ -60,13 +60,14 @@ class ScriptAnalyzer:
                 
             vulnerabilities = analyzer.analyze()
 
+            all_vulnerabilities.extend(vulnerabilities)
+            
             if any(vuln.vulnerability_type == VulnerabilityType.SYNTAX_ERROR for vuln in vulnerabilities):
                 print("Shellcheck found some syntax errors. Fix them before detecting security vulnerabilities.")
                 break
 
             Logger.v(f"Found {len(vulnerabilities)} vulnerabilities.")
             
-            all_vulnerabilities.extend(vulnerabilities)
         
         # Remove duplicate vulnerabilities and apply priority rules
         all_vulnerabilities = self._deduplicate_vulnerabilities(all_vulnerabilities)
