@@ -81,10 +81,11 @@ class ShellcheckAnalyzer(BaseAnalyzer):
                     break
 
                 if "(error):" in info:
+                    inf = info[info.find("(error):") + len("(error): "):]
                     vulnerability = Vulnerability(
                         vulnerability_type=VulnerabilityType.SYNTAX_ERROR,
                         severity=SeverityLevel.LOW,
-                        description=info,
+                        description=inf,
                         file_path=self.script_path,
                         line_number=line_number,
                         column=column,
