@@ -103,7 +103,6 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 test_conditions = self._extract_test_condition(self.lines[var.line], var.test_command, var.name)
                 if not self.run_superweapon_attack(test_conditions, var.name):
                     continue
-
                 vulnerability = Vulnerability(
                     vulnerability_type=VulnerabilityType.COMMAND_INJECTION,
                     severity=SeverityLevel.HIGH,
@@ -135,8 +134,8 @@ class CommandInjectionAnalyzer(BaseAnalyzer):
                 if f'${var}' in subscript.index_expression:
                     # Check if subscript uses 0-indexed or 1-indexed line numbers
                     if subscript.line < len(self.lines):
-                        line_content = self.lines[subscript.line]
-                        line_number = subscript.line
+                        line_content = self.lines[subscript.line-1]
+                        line_number = subscript.line - 1
                     else:
                         # Subscript might be 1-indexed, try subscript.line-1
                         line_content = self.lines[subscript.line-1] if subscript.line-1 < len(self.lines) else ""
