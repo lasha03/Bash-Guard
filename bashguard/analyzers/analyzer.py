@@ -24,6 +24,7 @@ class ScriptAnalyzer:
             self.script_path = script_path
             self.content = self._read_script().expandtabs(8)
         elif script:
+            self.script_path = None
             self.content = script.expandtabs(8)
         else:
             raise ValueError("Either script_path or script_as_bytes must be provided")
