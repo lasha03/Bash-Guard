@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="bashguard",
-    version="0.1.0",
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     packages=find_packages(),
     install_requires=[
         "click==8.1.8",
@@ -16,7 +17,7 @@ setup(
         "tree-sitter==0.24.0",
         "tree-sitter-bash==0.23.3"
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     entry_points={
         'console_scripts': [
             'bashguard = bashguard.__main__:cli',
